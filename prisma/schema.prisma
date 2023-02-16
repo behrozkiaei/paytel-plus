@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+model User{
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  name  String?
+  address String?
+  description String?
+  email String? 
+  lat String?
+  lan String?
+  status String?
+  avatar String?
+  mobile String @unique
+  role Role? @default(LEVEL1)
+  website String?
+  contantPersonName String?
+  contactPersonPhone String?
+  icon String?
+  active Boolean? @default(false)
+
+  verified Boolean? @default(false)
+  phone String?
+  Wallet Wallet?
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+  sheba  String?
+  dateVerified String? 
+  date String? 
+  password String
+  nationalCode String?
+  cartMelli String?
+  shenasname String?
+  paymentRequest UserPaymentRequest[]
+  @@map("user")
+}
+
+
+model Wallet {
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    User    User  @relation(fields: [userId], references: [id])
+    userId  String @unique @db.ObjectId
+    transactions WalletTransaction[]
+    name String?
+    amount Float @default(0)
+    walletType String? @default("USER")
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    date String 
+    sourceWallet WalletTransfer[]  @relation("sourceWallet")
+    destWallet WalletTransfer[]  @relation("destWallet")
+    @@map("wallet")
+}
+model WalletTransaction {
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    wallet    Wallet  @relation(fields: [destWalletId], references: [id])
+    destWalletId String  @db.ObjectId
+    amount Float
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    date String  
+    resnum String?
+    rrn String?
+    traceNum String?
+    isPaid Boolean @default(false)
+    securePan String?
+    @@map("walletTransaction")
+}
+
+model WalletTransfer {
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    walletSource    Wallet  @relation("sourceWallet",fields: [sourceWalletId], references: [id])
+    sourceWalletId String  @db.ObjectId
+    walletDest    Wallet  @relation("destWallet",fields: [destWalletId], references: [id])
+    destWalletId String  @db.ObjectId
+    amount Float
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    description String?
+    date String  
+    @@map("walletTransfer")
+}
+model UserPaymentRequest{
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    user    User  @relation(fields: [userId], references: [id])
+    userId  String @unique @db.ObjectId
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    description String?
+    amount Float?
+    state CashbackState
+    desc1  String?
+    desc2 String?
+    desc3 String?
+    bankResponse  String?
+    date String  
+    dateResponse String?  
+    @@map("marketerPaymentRequest")
+}
+
+model Config{
+    id     String @id @default(auto()) @map("_id") @db.ObjectId
+    paymentService String?
+    MID String?
+    paymentCallback String?
+    paymentLink String?
+    fcm_apiKey String?
+    payment_apiKey String?
+    mapServiceName  String?
+    map_apiKey String?
+    kavenegar_token String?
+    @@map("config")
+  }
+enum CashbackState {
+  PENDING // is pernding to cash back
+  DONE   // cash back is done
+  REJECTED // cash back is not done
+}
+
+enum Role {
+  ADMIN
+  MASTER
+  user 
+  LEVEL1 // a usual user who registered in app
+  LEVEL2 // a user who filled name
+  LEVEL3 // a user who confirm his docs
+  LEVEL4 // a user who is veridied as merchant 
+}
