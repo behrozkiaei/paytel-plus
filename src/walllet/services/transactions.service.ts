@@ -1,5 +1,4 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from './wallet.service';
@@ -22,9 +21,6 @@ export class TransactionsService {
       });
       return { ...transaction };
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        return { message: error.message };
-      }
       throw error;
     }
   }
@@ -155,7 +151,7 @@ export class TransactionsService {
       };
     }
   }
-  async getAllOrders(user, from = 0, take = 10){
+  async getAllOrders(user, from = 0, take = 10) {
     try {
       const count = await this.prisma.order.aggregate({
         _count: {
@@ -163,8 +159,14 @@ export class TransactionsService {
         },
       });
       const order = await this.prisma.order.findMany({
+        where: {
+          isPaid: true,
+        },
         skip: +from,
         take: +take,
+        include: {
+          desc: true,
+        },
         orderBy: [
           {
             createdAt: 'desc',
@@ -188,17 +190,6 @@ export class TransactionsService {
     }
   }
   async updateTransaction(id: string, dto: any) {
-    // get the bookmark by id
-    const transaction = await this.prisma.transaction.findUnique({
-      where: {
-        id: id,
-      },
-    });
-
-    // check if user owns the bookmark
-    if (!transaction || transaction.id !== id)
-      throw new ForbiddenException('Access to resources denied');
-
     try {
       await this.prisma.transaction.update({
         where: {
@@ -210,6 +201,7 @@ export class TransactionsService {
       });
       return true;
     } catch (e) {
+      console.log(e);
       return false;
     }
   }
@@ -263,16 +255,46 @@ export class TransactionsService {
     }
   }
 
+  async handleCallbackTest() {
+    try {
+      const transaction = await this.prisma.transaction.findFirst({
+        where: {
+          securePan: 'A00000000000000000000000000410663385',
+        },
+        include: {
+          wallet: true,
+          order: true,
+        },
+      });
+      const order = await this.prisma.order.findUnique({
+        where: { id: transaction.order.id },
+        include: {
+          desc: true,
+        },
+      });
+      console.log(order.desc);
+      return {
+        status: true,
+        message: 'تراکنش موفق',
+        result: { desc: order.desc, Amount: transaction.amount + '' },
+      };
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   async handleCallback(query: any) {
-    if (query.Status != 'Ok') {
+    console.log(query);
+    if (query.Status != 'OK') {
       return {
         status: false,
       };
-    } else if (query.Status == 'Ok') {
+    } else if (query.Status == 'OK') {
       try {
+        console.log(1);
         const transaction = await this.prisma.transaction.findFirst({
           where: {
-            securePan: query.authority.toString(),
+            securePan: query.Authority,
           },
           include: {
             wallet: true,
@@ -285,15 +307,9 @@ export class TransactionsService {
             message: 'چنین تراکنش وجود ندارد',
           };
 
+        console.log(transaction);
         if (transaction.isPaid == true) {
           return { result: {}, status: false, message: 'تراکنش منقضی شده است' };
-        }
-
-        if (query.Status != 'OK') {
-          await this.updateTransaction(transaction.id, {
-            isPaid: false,
-          });
-          return { status: false, message: query.Status };
         }
 
         const data = JSON.stringify({
@@ -314,30 +330,37 @@ export class TransactionsService {
         };
 
         const response = await axios(configuration);
-
-        if (response.data.data > 100) {
-          this.updateTransaction(transaction.id, {
+        console.log(response.data.data);
+        if (
+          response?.data?.data?.code == 100 ||
+          response?.data?.data?.code == 101
+        ) {
+          await this.updateTransaction(transaction.id, {
             isPaid: true,
+            card_pan: response.data.data.card_pan,
+            ref_id: response.data.data.ref_id,
+            fee_type: response.data.data.fee_type,
+            fee: response.data.data.fee,
           });
-
+          console.log(7);
           // if transaction is increse my wallet acount balance
           if (transaction.wallet) {
-            // const masterWallet = await this.walletService.getWalletByType(
-            //   'MASTER',
-            // );
-            // if (!masterWallet) {
-            //   throw new Error('err');
-            // }
-            // const transfer =
-            // await this.walletService.transferMoneyWallet2Wallet(
-            //   masterWallet.id,
-            //   transaction.wallet.id,
-            //   transaction.amount,
-            //   'تراکنش بانکی',
-            // );
-            // if (!transfer) {
-            //   throw new Error('err');
-            // }
+            const masterWallet = await this.walletService.getWalletByType(
+              'MASTER',
+            );
+            if (!masterWallet) {
+              throw new Error('err');
+            }
+            const transfer =
+              await this.walletService.transferMoneyWallet2Wallet(
+                masterWallet.id,
+                transaction.wallet.id,
+                transaction.amount,
+                'تراکنش بانکی',
+              );
+            if (!transfer) {
+              throw new Error('err');
+            }
           }
 
           //the transaction is buying a product or service
@@ -347,6 +370,7 @@ export class TransactionsService {
             //now if is the order to be done for user it should be done now
             //now if is the order to be done for user it should be done now
           }
+
           await this.prisma.order.update({
             where: {
               id: transaction.order.id,
@@ -354,13 +378,35 @@ export class TransactionsService {
             data: {
               date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
               isPaid: true,
+              datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+              desc: {
+                create: [
+                  {
+                    key: 'شماره کارت',
+                    value: response.data.data.card_pan.toString(),
+                  },
+                  {
+                    key: 'شماره تراکنش',
+                    value: response.data.data.ref_id.toString(),
+                  },
+                  {
+                    key: 'کد رهگیری',
+                    value: transaction.resnum,
+                  },
+                ],
+              },
+            },
+          });
+          const order = await this.prisma.order.findUnique({
+            where: { id: transaction.order.id },
+            include: {
+              desc: true,
             },
           });
           return {
             status: true,
-            result: {
-              ...transaction,
-            },
+            message: 'تراکنش موفق',
+            result: { desc: order.desc, Amount: transaction.amount },
           };
         } else {
           return {
@@ -371,6 +417,7 @@ export class TransactionsService {
           };
         }
       } catch (e) {
+        console.log(e);
         return { status: false, message: 'تراکنش ناموفق بود' };
       }
     }

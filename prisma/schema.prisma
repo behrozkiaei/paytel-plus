@@ -78,8 +78,12 @@ model Transaction {
     rrn String?
     traceNum String?
     isPaid Boolean @default(false)
-    securePan String?
+    securePan String @unique 
     datePaid String?
+    card_pan String?
+    ref_id Float?
+    fee_type String?
+    fee Int?
     //for order pruduct
     order    Order  @relation(fields: [orderId], references: [id])
     orderId  String @unique @db.ObjectId
@@ -90,16 +94,16 @@ model Order {
     transaction Transaction?
     type OrderType
     amount Float
-    desc KeyValue[]
+    user    User  @relation(fields: [userId], references: [id])
+    userId  String  @db.ObjectId
+    desc keyValue[]
+    date String  
     title String?
     subTitle String?
     avatar String?
-    user    User  @relation(fields: [userId], references: [id])
-    userId  String @unique @db.ObjectId
     isPaid Boolean @default(false)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    date String  
     datePaid String?  
     data1 String?
     data2 String?
@@ -107,12 +111,12 @@ model Order {
     data4 String?
     @@map("order")
 }
-model KeyValue {
+model keyValue {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   key     String
   value   String
   order  Order @relation(fields: [orderId], references: [id])
-  orderId String @unique @db.ObjectId
+  orderId String  @db.ObjectId
 }
 //wallet to wallet transfer
 model WalletTransfer {
@@ -145,7 +149,7 @@ model UserPaymentRequest{
     bankResponse  String?
     date String  
     dateResponse String?  
-    @@map("marketerPaymentRequest")
+    @@map("userPaymentRequest")
 }
 
 model Config{

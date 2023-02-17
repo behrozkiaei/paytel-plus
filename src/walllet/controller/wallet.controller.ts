@@ -60,4 +60,10 @@ export class WalletController {
     transferMoneyByUser(@User() user: any , @Body() dto : UserTransferDto){
       return this.walletService.transferByUser(user,dto)
     }
+
+    @Post('user-increase-wallet')
+    @Roles(Role.ADMIN,Role.LEVEL1,Role.LEVEL2) 
+    userIncreaseWallet(@User() user: any , @Body() dto : PaymentRequestDto){
+      return this.walletService.customerPaymentRequest(user,dto.amount)
+    }
 }

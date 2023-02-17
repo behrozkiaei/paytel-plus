@@ -73,14 +73,14 @@
                 </div>
               </div>
             {{/if}} 
-              {{#if  result/SecurePan }}
+              {{#each result/desc}}
               <div class="row">
                 <div class="rowP">
-                  <p>شماره کارت</p>
-                  <p> {{result.SecurePan}} </p>
+                  <p>{{key}}</p>
+                  <p> {{value}}</p>
                 </div>
               </div>
-            {{/if}} 
+            {{/each}}
         </div>
       </div>
     </div>

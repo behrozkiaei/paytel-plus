@@ -4,7 +4,6 @@ import { UpdateWalletDto } from '../dto/update-wallet.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import {  Role } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionsService } from './transactions.service';
 import { TransferDto } from '../dto/transfer.dto';
@@ -102,42 +101,31 @@ export class WalletService {
         });
       }
 
-      async customerPaymentRequest(amount , customerId) {
+      async customerPaymentRequest(user,  amount) {
 
         const resnum = Date.now().toString();
         const order = await this.prisma.order.create({
           data:{
             title : "افزایش اعتبار",
-            amount : amount,
+            amount : +amount,
             type : OrderType.increaseWallet,
-            userId:customerId,
+            userId : user.id,
+            subTitle : ``,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-            desc :{
-              create: [  // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
-              {
-                key: "کد رهگییری",
-                value : resnum
-              },
-              {
-                key: "زمان",
-                value : moment().format('jYYYY/jMM/jDD HH:mm:ss')
-              }
-            ] 
-          }
          }
         })
 
         const config = await this.prisma.config.findFirst({})
           try {
-              const wallet = await this.getWalletByUserId(customerId)
+              const wallet = await this.getWalletByUserId(user.id)
               //get  payment link 
               const data = JSON.stringify({
                   "merchant_id": "da506228-c225-431c-91ff-ddc4abe8b995",
-                  "amount": amount,
-                  "callback_url": "http://localhost:3000/callback",
+                  "amount": +amount,
+                  "callback_url": "http://localhost:3000/transactions/callback",
                   "description": ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
                   "metadata": {"mobile": wallet.User.mobile,},
-                  " order_id" : resnum
+                  "order_id" : resnum
               });
 
               const configuration = {
@@ -305,7 +293,7 @@ export class WalletService {
     
     const toWallet =await this.prisma.wallet.findFirst({
       where: {
-         walletCode  : dto.walletCode.toString(),
+         walletCode  : dto.walletCode,
        },
        include :{
          User:true
@@ -360,7 +348,9 @@ export class WalletService {
             isPaid :true ,
          }
         })
-    
+        return {
+          status : true,
+        }
       }else{
         throw new Error(
           'response not true',

@@ -6,7 +6,6 @@ import {
   phoneNumberNormalizer,
   phoneNumberValidator,
 } from '@persian-tools/persian-tools';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PrismaService } from '../prisma/prisma.service';
 import { toEn } from '../utils/toEn';
 import { AuthDto } from './dto';
@@ -74,14 +73,6 @@ export class AuthService {
 
       return { status: true, stasusCode: 0, result: true };
     } catch (error) {
-      console.log(error);
-      if (error instanceof PrismaClientKnownRequestError) {
-        return {
-          statusCode: 1,
-          status: false,
-          message: 'error',
-        };
-      }
       throw error;
     }
   }

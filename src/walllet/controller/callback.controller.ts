@@ -18,4 +18,11 @@ export class CallbackController {
     callback(@Query() query :any) {
         return  this.transactionService.handleCallback(query);   
     }
+
+
+    // @Get("callback-test")
+    // @Render('index')
+    // callbacktest(@Query() query :any) {
+    //     return  this.transactionService.handleCallbackTest();   
+    // }
 }
