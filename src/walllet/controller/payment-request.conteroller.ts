@@ -24,7 +24,7 @@ export class PaymentRequestController {
   constructor(private walletService: PaymentRequestService) {}
 
   @Post('chashback')
-  @Roles('MARKETER')
+  @Roles('LEVEL3')
   @ApiOperation({ summary: 'Requesting chash back ' })
   chashback(@User() user: any, @Body() dto: PaymentRequestDto) {
     return this.walletService.chashback(user, dto);

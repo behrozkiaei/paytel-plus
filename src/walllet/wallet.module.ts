@@ -1,5 +1,3 @@
-
-/* eslint-disable prettier/prettier */
 import { PaymentRequestController } from './controller/payment-request.conteroller';
 import { Module } from '@nestjs/common';
 import { WalletController } from './controller/wallet.controller';
@@ -11,10 +9,14 @@ import { WalletTransferModule } from './wallet-transfer/wallet-transfer.module';
 import { PaymentRequestService } from './services/payment-request.service';
 
 @Module({
-    imports: [WalletTransferModule],
-    controllers: [WalletController,TransactionsController,CallbackController,PaymentRequestController],
-    providers: [
-        WalletService,TransactionsService,PaymentRequestService],
-    exports :[WalletService]
+  imports: [WalletTransferModule],
+  controllers: [
+    WalletController,
+    TransactionsController,
+    CallbackController,
+    PaymentRequestController,
+  ],
+  providers: [WalletService, TransactionsService, PaymentRequestService],
+  exports: [WalletService, TransactionsService],
 })
-export class WalletModule { }
+export class WalletModule {}

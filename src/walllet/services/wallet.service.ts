@@ -1,36 +1,22 @@
+import { UserTransferDto } from './../dto/transfer.dto';
+import { User  } from './../../auth/decorator/user.decorator';
 import { UpdateWalletDto } from '../dto/update-wallet.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import {  Role, User } from '@prisma/client';
+import {  Role } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionsService } from './transactions.service';
 import { TransferDto } from '../dto/transfer.dto';
-import moment from 'moment-jalaali';
-
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const  moment = require('moment-jalaali')
+import axios from 'axios';
+import { OrderType } from 'src/utils/enums';
 @Injectable()
 export class WalletService { 
-    constructor(private prisma : PrismaService ,private transactionService : TransactionsService){}
-    async createWallet(user : User){
-        try {
-            const wallet = await this.prisma.wallet.create({
-            data: {
-              userId :user.id,
-              walletType : user?.role,
-              date : moment().format('jYYYY/jMM/jDD'),
-            }
-          });
-          return {...wallet};
-        } catch (error) {
-          if (
-            error instanceof
-            PrismaClientKnownRequestError
-          ) {
-              return({message :error.message})
-          }
-          throw error;
-        }
-    }
+    constructor(
+      private prisma : PrismaService ){}
+
 
 
     async getWalletById(id: string) {
@@ -53,12 +39,15 @@ export class WalletService {
           where: {
             userId : id
           },
+          include:{
+            User:true,
+          },
         });
       }
 
       
       async getAllWallet() {
-        return this.prisma.wallet.findMany();
+        return await this.prisma.wallet.findMany();
       }
   
       async updateWallet(
@@ -116,30 +105,74 @@ export class WalletService {
       async customerPaymentRequest(amount , customerId) {
 
         const resnum = Date.now().toString();
+        const order = await this.prisma.order.create({
+          data:{
+            title : "افزایش اعتبار",
+            amount : amount,
+            type : OrderType.increaseWallet,
+            userId:customerId,
+            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            desc :{
+              create: [  // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
+              {
+                key: "کد رهگییری",
+                value : resnum
+              },
+              {
+                key: "زمان",
+                value : moment().format('jYYYY/jMM/jDD HH:mm:ss')
+              }
+            ] 
+          }
+         }
+        })
+
         const config = await this.prisma.config.findFirst({})
           try {
               const wallet = await this.getWalletByUserId(customerId)
-              await this.prisma.walletTransaction.create({
-                data : {
-                  destWalletId : wallet.id,
-                  amount :+amount,
-                  resnum: resnum,
-                  date : moment().format('jYYYY/jMM/jDD'),
-                }
-              })
+              //get  payment link 
+              const data = JSON.stringify({
+                  "merchant_id": "da506228-c225-431c-91ff-ddc4abe8b995",
+                  "amount": amount,
+                  "callback_url": "http://localhost:3000/callback",
+                  "description": ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
+                  "metadata": {"mobile": wallet.User.mobile,},
+                  " order_id" : resnum
+              });
+
+              const configuration = {
+                method: 'post',
+                maxBodyLength: Infinity,
+                url: 'https://api.zarinpal.com/pg/v4/payment/request.json',
+                headers: {  
+                  'Content-Type': 'application/json',
+                  'accept': 'application/json'
+                },
+                data : data
+              }
+              const response = await axios(configuration);
+              console.log(response.data.data)
+              if(response.data.data.code == 100){
+                await this.prisma.transaction.create({
+                  data : {
+                    destWalletId : wallet.id,
+                    amount :+amount,
+                    resnum: resnum,
+                    date : moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+                    securePan : response.data.data.authority,
+                    orderId : order.id
+                  }
+                })
+              }
               return {
                   result:{
-                    form:true,
-                    link: config.paymentLink,
-                    Amount: amount,
-                    ResNum: resnum,
-                    MID : config.MID,
-                    RedirectURL :config.paymentCallback
+                    RedirectURL : `https://www.zarinpal.com/pg/StartPay/${response.data.data.authority}`,
                   }  ,
                   status : true,
                   statusCode : 0
               }
           }catch (e) {
+            console.log(e)
             return {
                   result: null,
                   statusCode : 1 ,
@@ -150,28 +183,26 @@ export class WalletService {
     };
 
   async transferMoneyWallet2Wallet(sourceWalletId,destWalletId,amount,desc=""){
-     const  date = moment().format('jYYYY/jMM/jDD')
+     const  date = moment().format('jYYYY/jMM/jDD HH:mm:ss')
      try{
        
        const sourceWallet =await this.prisma.wallet.findUnique({
          where :{id : sourceWalletId}
         })
-        
-        console.log(sourceWallet)
+
       const destWallet = await this.prisma.wallet.findUnique({
          where :{id : destWalletId}
         })
       if(!destWallet){
-          throw new ForbiddenException(
+          throw new Error(
           'Dest wallet not founded',
       );}
       if(!sourceWallet){
-        throw new ForbiddenException(
+        throw new Error(
           'source Wallet  not founded',
           );
         }
-        console.log(amount)
-        console.log("sourceWallet.amount",sourceWallet.amount)
+        console.log(sourceWallet)
         if(+amount > +sourceWallet.amount){
           throw new ForbiddenException(
           'Amount not enough',
@@ -215,12 +246,7 @@ export class WalletService {
       };
     }
   }
-
-
-
-  async transfer(dto :TransferDto){
-    // return true;
-    console.log(1)
+  async transferByAdmin(dto :TransferDto){
     const masterWallet =await this.prisma.wallet.findFirst({
       where: {
         walletType : "MASTER"
@@ -235,11 +261,10 @@ export class WalletService {
         }
       }
     })
-
     if(!masterWallet){
       throw new ForbiddenException("Master wallet not founded")
     }
-
+    
     const userWallet =await  this.prisma.user.findUnique({
       where : {
         id : dto.userId
@@ -251,11 +276,9 @@ export class WalletService {
     if(!userWallet ||!userWallet.Wallet ){
       throw new ForbiddenException("Master wallet not founded")
     }
-
     if(dto.mode == "increase"){
           try{
             return this.transferMoneyWallet2Wallet(masterWallet?.id,userWallet.Wallet.id,dto.amount,"افزایش اعتبار توسط ادمین")
-           
           }catch(e){
             console.log(e)
             return {
@@ -264,12 +287,9 @@ export class WalletService {
             }
           }
       }
-      
-    
     if(dto.mode == "decrease"){
           try{
-            return this.transferMoneyWallet2Wallet(userWallet.Wallet.id,masterWallet.id,dto.amount,"کاهش اعتبار توسط ادمین")
-           
+            return this.transferMoneyWallet2Wallet(userWallet.Wallet.id,masterWallet.id,dto.amount,"کاهش اعتبار توسط ادمین")  
           }catch(e){
             console.log(e)
             return {
@@ -277,8 +297,81 @@ export class WalletService {
               message: "something wrong"
             }
           }
-
      }
+  }
 
+
+  async transferByUser(user:any , dto :UserTransferDto){
+    
+    const toWallet =await this.prisma.wallet.findFirst({
+      where: {
+         walletCode  : dto.walletCode.toString(),
+       },
+       include :{
+         User:true
+       }
+    })
+    if(!toWallet){
+      throw new ForbiddenException("Target User  wallet not founded")
+    }
+    const resnum = Date.now().toString();
+    const order = await this.prisma.order.create({
+      data:{
+        title : "انتقال اعتبار",
+        amount : +dto.amount,
+        type : OrderType.walletToWallet,
+        userId:user.id,
+        subTitle : `${toWallet.User.username}انتقال به `,
+        date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+        desc :{
+          create: [  // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
+          {
+            key: "کد رهگیری",
+            value : resnum
+          }
+        ] 
+      }
+     }
+    })
+
+  
+
+
+    const fromUser = await  this.prisma.user.findUnique({
+      where : {
+        id : user.id
+      },
+      include :{
+        Wallet:true
+      }
+    })
+    if(!fromUser ||!fromUser.Wallet ){
+      throw new ForbiddenException("From user wallet not founded")
+    }
+    try{
+      const response = await this.transferMoneyWallet2Wallet(fromUser.Wallet.id,toWallet.id,dto.amount,"انتقال اعتبار ")  
+      if(response.status){
+        await this.prisma.order.update({
+          where : {
+            id :order.id,
+          },
+          data:{
+            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            isPaid :true ,
+         }
+        })
+    
+      }else{
+        throw new Error(
+          'response not true',
+      );
+      }
+    }catch(e){
+      console.log(e)
+      return {
+        status : false,
+        message: e.message || "something wrong"
+      }
+    }  
   }
 }

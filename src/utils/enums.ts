@@ -9,3 +9,17 @@ export enum Role {
   LEVEL3 = 'LEVEL3',
   LEVEL4 = 'LEVEL4',
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export enum OtpType {
+  Login = 'Login',
+  RessetPass = 'RessetPass',
+}
+
+export enum OrderType {
+  bill = 'bill',
+  internet = 'internet',
+  charge = 'charge',
+  walletToWallet = 'walletToWallet',
+  increaseWallet = 'increaseWallet',
+}

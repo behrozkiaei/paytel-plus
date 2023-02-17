@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import moment from 'moment-jalaali';
+const  moment = require('moment-jalaali')
 import { PaymentRequestDto } from '../dto/payment-request.dto';
 
 @Injectable()

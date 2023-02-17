@@ -21,7 +21,7 @@ import { User } from '../auth/decorator/user.decorator';
 import { JwtGuard } from '../auth/guard';
 import { RolesGuard } from '../auth/guard/role.guard';
 import { UserService } from './user.service';
-import moment from 'moment-jalaali';
+const  moment = require('moment-jalaali')
 
 @UseGuards(JwtGuard, RolesGuard)
 @ApiBearerAuth('access-token')
@@ -30,13 +30,13 @@ import moment from 'moment-jalaali';
 export class UserController {
   constructor(private userService: UserService) {}
   @Get('me')
-  @Roles('ADMIN', 'MERCHANT', 'MARKETER', 'CUSTOMER')
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   getMe(@User() user: any): Promise<INewResponseAPI<any>> {
     return this.userService.getMe(user);
   }
 
   @Post('upload')
-  @Roles('ADMIN', 'MERCHANT')
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -63,18 +63,14 @@ export class UserController {
   }
 
   @Get('user-info/:id')
-  @Roles(
-    'ADMIN',
-    'USER',
-    'MARKETER',
-    'MERCHANT',
-    Role.LEVEL1,
-    Role.LEVEL2,
-    Role.LEVEL3,
-    Role.LEVEL4,
-  )
+  @Roles(Role.ADMIN)
   getUserInfo(@Param('id') id: string) {
-    console.log(id);
     return this.userService.getUserInfo(id);
+  }
+
+  @Get('user-by-wallet-code/:id')
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+  getUserInfoByWalletCode(@Param('code') code: string) {
+    return this.userService.getUserInfoByWalletCode(code);
   }
 }

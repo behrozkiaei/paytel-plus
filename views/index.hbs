@@ -1,0 +1,88 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hi-Kish</title>
+    <link rel="stylesheet" href="../../public/assets/styles.css" />
+  </head>
+
+  <body>
+    <div class="recieptStyle">
+      <div class="container">
+        <div class="box">
+         {{#unless  status}} 
+            <div class="row">
+              <div class="rowC">
+                <img src="../../public/assets/images/x-button.svg" />
+              </div>
+            </div>
+          {{/unless }}
+            
+            {{#if status  }}
+            <div class="row">
+              <div class="rowC">
+                <img src="../../public/assets/images/success.svg" />
+              </div>
+            </div>
+            {{/if}}
+
+
+            {{#if message }}
+            <div class="row">
+              <div class="rowP">
+                <p>وضعیت</p>
+                <p>
+                  {{ message}}
+                </p>
+              </div>
+            </div>
+            {{/if}}
+
+            {{#if  result/RRN }}
+              <div class="row">
+                <div class="rowP">
+                  <p>rrn</p>
+                  <p> {{result.RRN}} </p>
+                </div>
+              </div>
+            {{/if}} 
+               {{#if  result/ResNum }}
+              <div class="row">
+                <div class="rowP">
+                  <p>ResNum</p>
+                  <p> {{result.ResNum}} </p>
+                </div>
+              </div>
+            {{/if}} 
+            {{#if  result/TRACENO }}
+              <div class="row">
+                <div class="rowP">
+                  <p>TRACENO</p>
+                  <p> {{result.TRACENO}} </p>
+                </div>
+              </div>
+            {{/if}} 
+             {{#if  result/Amount }}
+              <div class="row">
+                <div class="rowP">
+                  <p>مقدار</p>
+                  <p> {{result.Amount}} ریال</p>
+                </div>
+              </div>
+            {{/if}} 
+              {{#if  result/SecurePan }}
+              <div class="row">
+                <div class="rowP">
+                  <p>شماره کارت</p>
+                  <p> {{result.SecurePan}} </p>
+                </div>
+              </div>
+            {{/if}} 
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

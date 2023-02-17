@@ -1,22 +1,31 @@
 /* eslint-disable prettier/prettier */
 import { ApiProperty } from '@nestjs/swagger';
 import {
-    IsEmail,
-    IsNotEmpty,
-    IsOptional,
-    IsString,
-    Matches,
-    Max,
-    Min,
-    min,
-  } from 'class-validator';
+  IsNotEmpty,
+  IsString,
+  Matches,
+  Max,
+  Min
+} from 'class-validator';
+import { OtpType } from 'src/utils/enums';
   
-  export class CreateUserDto {
+  export class LoginUserDto {
 
-    @IsEmail()
+    @IsString()
     @IsNotEmpty()
     @ApiProperty()
-    email:string
+    @Matches("/^09[0|1|2|3|9][0-9]{8}$/")
+    @Min(11)
+    @Max(11)
+    mobile :string
+  }
+  
+
+  
+  
+
+
+  export class sendOtpDto {
 
     @IsString()
     @IsNotEmpty()
@@ -26,61 +35,26 @@ import {
     @Max(11)
     mobile :string
 
+
     @IsString()
     @IsNotEmpty()
     @ApiProperty()
-    name  :string
-    
-
-    @IsString() 
-    @IsOptional()
-    @ApiProperty()
-    address :string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    description :string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    lat :string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    lan :string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    status :string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    website :string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    contantPersonName:string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    contactPersonPhone:string
-
-    @IsString()
-    @IsOptional()
-    @ApiProperty()
-    icon :string
-
-   
-  @IsString()
-  @IsOptional()
-  @ApiProperty()
-  nationalCode :string
+    otpType :OtpType
   }
   
+  export class verifyOtpDto {
+
+    @IsString()
+    @IsNotEmpty()
+    @ApiProperty()
+    @Matches("/^09[0|1|2|3|9][0-9]{8}$/")
+    @Min(11)
+    @Max(11)
+    mobile :string
+
+
+    @IsString()
+    @IsNotEmpty()
+    @ApiProperty()
+    password :string
+  }

@@ -1,22 +1,20 @@
-import { Role } from './../utils/enums';
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { CreateUserDto } from './dto/create-user.dto';
-import { SendOtp } from './dto/auth.dto';
+import { OtpType } from 'src/utils/enums';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import {
   phoneNumberNormalizer,
   phoneNumberValidator,
 } from '@persian-tools/persian-tools';
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { toEn } from '../utils/toEn';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuthDto } from './dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
+import { toEn } from '../utils/toEn';
+import { AuthDto } from './dto';
+import { SendOtp } from './dto/auth.dto';
+import { LoginUserDto, sendOtpDto, verifyOtpDto } from './dto/create-user.dto';
 // import { sendMessage } from '../utils/sendMessage';
-import moment from 'moment-jalaali';
-
-
+// eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
+const  moment = require('moment-jalaali')
 @Injectable()
 export class AuthService {
   constructor(
@@ -25,34 +23,54 @@ export class AuthService {
     private config: ConfigService,
   ) {}
 
-  async createMerchant(dto: CreateUserDto) {
+  async login(dto: LoginUserDto) {
     if (!phoneNumberValidator(dto.mobile)) {
       throw new ForbiddenException('Phone is not valid');
     }
+    const mobile = toEn(phoneNumberNormalizer(dto.mobile, '0'));
     try {
       const password = (Math.floor(Math.random() * 9000) + 1000).toString();
-      let user = await this.findUserByPhone(dto.mobile);
-      if (user) {
-        throw new ForbiddenException('Phone number registered before');
+      let user = await this.findUserByPhone(mobile);
+      if (!user) {
+        //throw new ForbiddenException('Phone number registered before');
+        user = await this.prisma.user.create({
+          data: {
+            phone: mobile,
+            mobile: mobile,
+            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            password: password,
+          },
+        });
+        const lastWallet = await this.prisma.wallet.findFirst({
+          orderBy: {
+            date: 'desc',
+          },
+        });
+
+        await this.prisma.wallet.create({
+          data: {
+            userId: user.id,
+            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            amount: 0,
+            walletCode: lastWallet.walletCode + 1,
+          },
+        });
       }
-      user = await this.prisma.user.create({
+
+      if (!user.active) throw new ForbiddenException('اکانت شما  فعال  نیست');
+      await this.prisma.user.update({
+        where: {
+          id: user.id,
+        },
         data: {
-          ...dto,
-          role: Role.LEVEL1,
-          phone: toEn(dto.mobile),
-          mobile: toEn(dto.mobile),
-          date: moment().format('jYYYY/jMM/jDD'),
-          password: '',
+          password: '1234' || password,
+          otpDate: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+          otpType: OtpType.Login,
         },
       });
-      await this.prisma.wallet.create({
-        data: {
-          userId: user.id,
-          date: moment().format('jYYYY/jMM/jDD'),
-          walletType: Role.LEVEL1,
-          amount: 0,
-        },
-      });
+      // wait send message to user
+
+      // wait send message to user
 
       return { status: true, stasusCode: 0, result: true };
     } catch (error) {
@@ -70,16 +88,16 @@ export class AuthService {
 
   async findUserByPhone(phoneNumber) {
     try {
-      return this.prisma.user.findUnique({
+      return this.prisma.user.findFirst({
         where: {
-          mobile: toEn(phoneNumber),
+          mobile: toEn(phoneNumberNormalizer(phoneNumber, '0')),
         },
       });
     } catch (error) {
       return false;
     }
   }
-  async sendOtp(dto: SendOtp) {
+  async sendOtp(dto: sendOtpDto) {
     if (!phoneNumberValidator(dto.mobile)) {
       throw new ForbiddenException('Phone is not valid');
     }
@@ -97,21 +115,18 @@ export class AuthService {
         throw new ForbiddenException('اکانت شما هنوز فعال نشده است');
       const password =
         '1111' || (Math.floor(Math.random() * 9000) + 1000).toString();
-      const msg = `Hi-kish password : ${password}`;
-      const mobile2Send = user.mobile.startsWith('0')
-        ? user.mobile.substring(1)
-        : user.mobile;
-      const config = await this.prisma.config.findFirst({});
-      const res = await this.prisma.user.update({
+
+      // await sendMessage(mobile2Send, password);
+      await this.prisma.user.update({
         where: {
           id: user.id,
         },
         data: {
-          password: password,
+          password: '1234' || password,
+          otpDate: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+          otpType: dto.otpType,
         },
       });
-
-      // await sendMessage(mobile2Send, password);
       return {
         result: {
           mobile: mobile,
@@ -130,9 +145,12 @@ export class AuthService {
       };
     }
   }
-  async signin(dto: AuthDto) {
+  async verifyOtp(dto: verifyOtpDto) {
+    // find the user
+    if (!phoneNumberValidator(dto.mobile)) {
+      throw new ForbiddenException('Phone is not valid');
+    }
     try {
-      // find the user by email
       const user = await this.prisma.user.findUnique({
         where: {
           mobile: dto.mobile,
@@ -143,52 +161,39 @@ export class AuthService {
 
       // compare password
       const pwMatches = user.password == dto.password ? true : false;
-
       // if password incorrect throw exception
-      if (!pwMatches) throw new ForbiddenException('Credentials incorrect');
+      if (!pwMatches) throw new ForbiddenException('Password not matched');
 
-      const token = await this.signToken(user.id, user.email);
-      return { result: token, status: true, stausCode: 0 };
+      const end = moment().format('jYYYY/jMM/jDD HH:mm:ss');
+      const duration = moment(end, 'jYYYY/jMM/jDD HH:mm:ss').diff(
+        moment(user.otpDate, 'jYYYY/jMM/jDD HH:mm:ss'),
+        'minutes',
+      );
+      const dif = moment.duration(duration, 'minutes').asMinutes();
+      if (dif > 3) {
+        throw new ForbiddenException('Otp Expired');
+      }
+      let token;
+      if (user.otpType == OtpType.Login) {
+        token = await this.signToken(user.id);
+      }
+      return {
+        result: {
+          otpType: user.otpType,
+          token: token ?? null,
+        },
+        staus: true,
+      };
     } catch (e) {
       console.log(e);
       return {
-        result: null,
-        status: false,
-        statusCode: 1,
-        message: 'Something goes wrong...!',
-      };
-    }
-  }
-  async verifyOtp(dto: AuthDto) {
-    // find the user by email
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: {
-          mobile: dto.mobile,
-        },
-      });
-      // if user does not exist throw exception
-      if (!user) throw new ForbiddenException('Credentials incorrect');
-
-      // compare password
-      const pwMatches = user.password == dto.password ? true : false;
-      // if password incorrect throw exception
-      if (!pwMatches) throw new ForbiddenException('Password not mached');
-      return {
-        result: true,
-      };
-    } catch (e) {
-      return {
         result: false,
-        message: 'Something goes wrong!',
+        message: e.message || 'Something goes wrong!',
       };
     }
   }
 
-  async signToken(
-    userId: string,
-    email: string,
-  ): Promise<{ access_token: string }> {
+  async signToken(userId: string): Promise<{ access_token: string }> {
     const payload = {
       sub: userId,
     };
@@ -204,9 +209,8 @@ export class AuthService {
     };
   }
 
-  async sendVerification(phone_number, verification_code) {
+  async sendVerification() {
     try {
-      const config = await this.prisma.config.findFirst({});
       // send sms
     } catch (e) {
       return false;

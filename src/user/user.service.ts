@@ -1,17 +1,12 @@
 import { User } from '@prisma/client'
 /* eslint-disable prettier/prettier */
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EditUserDto } from './dto';
-import moment from 'moment-jalaali';
+const  moment = require('moment-jalaali')
 @Injectable()
-
-
 export class UserService {
   constructor(private prisma: PrismaService) {}
-  
-
-    
   async editUser(
     userId: string,
     dto: EditUserDto,
@@ -49,6 +44,47 @@ export class UserService {
       return {result : false}
     }
   }
+  async getUserInfoByWalletCode(code){
+    try{
+
+      const userWallet =await this.prisma.wallet.findFirst({
+        where: {
+           walletCode  :code,
+         },
+         select:{
+          User : {select: {
+            id : true
+            }
+          }
+         }
+      })
+      if(!userWallet){
+        throw new ForbiddenException("User Not Founded")
+      }
+
+
+      const userInfo = await this.prisma.user.findUnique({
+        where : {
+          id: userWallet.User.id
+        },
+        select:{
+          name : true,
+          avatar : true,
+          username : true,
+        }
+      })
+
+      return{
+        status : true,
+        result : userInfo,
+        statusCode : 0,
+      }
+    }catch(e){
+      console.log(e)
+      return {result : false}
+    }
+  }
+  
   async getMe(user:any){
     try{
 
@@ -62,20 +98,15 @@ export class UserService {
                   destWallet:true
                 }
               },
-              paymentRequest :{
-                orderBy : {updatedAt :'desc'}
-              },
-            
           },
-        
         })
-
         return{
           status : true,
           result : userInfo,
           statusCode : 0,
         }
     }catch(e){
+      console.log(e)
       return {result : false}
     }
   }

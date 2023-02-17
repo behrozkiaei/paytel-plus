@@ -11,7 +11,8 @@ import { RolesGuard } from '../../auth/guard/role.guard';
 import { PaymentRequestDto } from '../dto/payment-request.dto';
 import { WalletService } from '../services/wallet.service';
 import { Response } from 'express';
-import { TransferDto } from '../dto/transfer.dto';
+import { TransferDto, UserTransferDto } from '../dto/transfer.dto';
+import { Role } from 'src/utils/enums';
 @ApiTags("Wallet  Api's")
 @Controller("wallet")
 @UseGuards(JwtGuard,RolesGuard)
@@ -20,55 +21,43 @@ export class WalletController {
 
     constructor(private walletService : WalletService){}
 
-    @Post("create")
-    @Roles("ADMIN","MERCHANT")
-    @ApiOperation({ summary: 'Create Wallet' })
-    createWallet( @User() user  :any){
-        return this.walletService.createWallet(user);
-    }
+    
 
     @Patch("update")
-    @Roles("ADMIN","MERCHANT")
-    updateWsllet(@Param("id") id :string ,dto :UpdateWalletDto){
+    @Roles(Role.ADMIN)
+    updateWallet(@Param("id") id :string ,dto :UpdateWalletDto){
         this.walletService.updateWallet(id, dto)
     }
 
 
     @Get("/")
-    @Roles("ADMIN")
+    @Roles(Role.ADMIN)
     getAll(){
         return this.walletService.getAllWallet()
     }
 
 
     @Get("/:id")
-    @Roles("ADMIN","MERCHANT")
+    @Roles(Role.ADMIN)
     getWalletById(@Param("id") id : string){
         return this.walletService.getWalletById(id);
     }
 
     @Delete("/:id")
-    @Roles("ADMIN","MERCHANT")
+    @Roles(Role.ADMIN)
     deleteById(@Param("id") id :string ){
         return this.walletService.deleteWallet(id);
     } 
 
     @Post("/my-wallet")
-    @Roles("ADMIN","MERCHANT")
+    @Roles(Role.ADMIN)
     getWalletByUserId(@User() user :any){
        return  this.walletService.getWalletByUserId(user.id)
     }
-
-    @Post("payment-request")
-    @Roles("ADMIN","MERCHANT")
-    customerPaymentRequest(@Body() dto :PaymentRequestDto ,@User() user){
-        return  this.walletService.customerPaymentRequest(dto.amount ,user.id)
-    }
-
-
-    @Post('transfer')
-    @Roles("ADMIN") 
-    transferMonet(@Body() dto : TransferDto){
-      return this.walletService.transfer(dto)
+    
+    @Post('user-transfer')
+    @Roles(Role.LEVEL1,Role.LEVEL2) 
+    transferMoneyByUser(@User() user: any , @Body() dto : UserTransferDto){
+      return this.walletService.transferByUser(user,dto)
     }
 }
