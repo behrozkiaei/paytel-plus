@@ -12,8 +12,9 @@ export class AuthController {
 
   @Post('signIn')
   @ApiOperation({ summary: 'User  signIn' })
-  signIn(@Body() User: LoginUserDto) {
-    return this.authService.login(User);
+  signIn(@Body() dto: LoginUserDto) {
+    console.log(dto);
+    return this.authService.login(dto);
   }
 
   @HttpCode(HttpStatus.OK)

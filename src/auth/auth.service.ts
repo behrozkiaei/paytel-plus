@@ -73,6 +73,7 @@ export class AuthService {
 
       return { status: true, stasusCode: 0, result: true };
     } catch (error) {
+      console.log(error);
       throw error;
     }
   }
@@ -123,7 +124,7 @@ export class AuthService {
           mobile: mobile,
         },
         message: 'رمز یک بار مصرف ارسال شد',
-        stausCode: 0,
+        statusCode: 0,
         status: true,
       };
     } catch (e) {
@@ -173,7 +174,7 @@ export class AuthService {
           otpType: user.otpType,
           token: token ?? null,
         },
-        staus: true,
+        status: true,
       };
     } catch (e) {
       console.log(e);

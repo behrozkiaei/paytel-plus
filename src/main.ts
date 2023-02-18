@@ -8,6 +8,8 @@ import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import hbs = require('hbs')
+import * as bodyParser from 'body-parser';
+
 import session = require('express-session');
 // somewhere in your initialization file
 async function bootstrap() {
@@ -32,7 +34,7 @@ async function bootstrap() {
     app.useStaticAssets(join(__dirname, '..', 'public'), {
       index: false,
       prefix: '/public',
-  });
+    });
   
     app.use(helmet());
     app.use(cookieParser());
@@ -43,6 +45,10 @@ async function bootstrap() {
         saveUninitialized: false,
       }),
     );
+    // Increase maximum request payload size to 10mb
+    app.use(bodyParser.json({ limit: '4mb' }));
+    app.use(bodyParser.urlencoded({ limit: '4mb', extended: true }));
+
     // app.use(csurf());
     app.setBaseViewsDir(join(__dirname, '..', 'views'));
     app.setViewEngine('hbs');
