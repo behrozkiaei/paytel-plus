@@ -1,5 +1,7 @@
+import { InternetDto } from '../dto/internet.dto';
+import { PaymentRequestDto } from './../dto/payment-request.dto';
+import { INewResponseAPI } from 'src/utils/interfaces/response-type';
 import { UserTransferDto } from './../dto/transfer.dto';
-import { User  } from './../../auth/decorator/user.decorator';
 import { UpdateWalletDto } from '../dto/update-wallet.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -101,66 +103,31 @@ export class WalletService {
         });
       }
 
-      async customerPaymentRequest(user,  amount) {
-
-        const resnum = Date.now().toString();
-        const order = await this.prisma.order.create({
-          data:{
-            title : "افزایش اعتبار",
-            amount : +amount,
-            type : OrderType.increaseWallet,
-            userId : user.id,
-            subTitle : ``,
-            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-         }
-        })
-
-        const config = await this.prisma.config.findFirst({})
-          try {
-              const wallet = await this.getWalletByUserId(user.id)
-              //get  payment link 
-              const data = JSON.stringify({
-                  "merchant_id": "da506228-c225-431c-91ff-ddc4abe8b995",
-                  "amount": +amount,
-                  "callback_url": "http://localhost:3000/transactions/callback",
-                  "description": ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
-                  "metadata": {"mobile": wallet.User.mobile,},
-                  "order_id" : resnum
-              });
-
-              const configuration = {
-                method: 'post',
-                maxBodyLength: Infinity,
-                url: 'https://api.zarinpal.com/pg/v4/payment/request.json',
-                headers: {  
-                  'Content-Type': 'application/json',
-                  'accept': 'application/json'
-                },
-                data : data
+      async customerPaymentRequest(user,  amount , dto :PaymentRequestDto) {
+        try {
+          console.log(dto)
+            const order = await this.prisma.order.create({
+              data:{
+                title : "افزایش اعتبار",
+                amount : +amount,
+                type : OrderType.increaseWallet,
+                userId : user.id,
+                avatar : user.avatar,
+                payload : JSON.stringify(dto),
+                date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
               }
-              const response = await axios(configuration);
-              console.log(response.data.data)
-              if(response.data.data.code == 100){
-                await this.prisma.transaction.create({
-                  data : {
-                    destWalletId : wallet.id,
-                    amount :+amount,
-                    resnum: resnum,
-                    date : moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-                    securePan : response.data.data.authority,
-                    orderId : order.id
-                  }
-                })
-              }
+            })
+            const  res = await this.createTransaction(user.id , amount, order.id);
+            if(res.status && res.result){
               return {
-                  result:{
-                    RedirectURL : `https://www.zarinpal.com/pg/StartPay/${response.data.data.authority}`,
-                  }  ,
-                  status : true,
-                  statusCode : 0
+                result:{
+                  RedirectURL : res.result.RedirectURL,
+                }  ,
+                status : true,
+                statusCode : 0
               }
+            }
           }catch (e) {
-            console.log(e)
             return {
                   result: null,
                   statusCode : 1 ,
@@ -168,10 +135,12 @@ export class WalletService {
                   message:"Failed to insert data",
               }
           }
-    };
+     };
 
   async transferMoneyWallet2Wallet(sourceWalletId,destWalletId,amount,desc=""){
-     const  date = moment().format('jYYYY/jMM/jDD HH:mm:ss')
+   
+ 
+    const  date = moment().format('jYYYY/jMM/jDD HH:mm:ss')
      try{
        
        const sourceWallet =await this.prisma.wallet.findUnique({
@@ -190,7 +159,7 @@ export class WalletService {
           'source Wallet  not founded',
           );
         }
-        console.log(sourceWallet)
+        // console.log(sourceWallet)
         if(+amount > +sourceWallet.amount){
           throw new ForbiddenException(
           'Amount not enough',
@@ -302,6 +271,7 @@ export class WalletService {
     if(!toWallet){
       throw new ForbiddenException("Target User  wallet not founded")
     }
+    await this.registerInLastPaidUsersDb(user.id,toWallet.User.id);
     const resnum = Date.now().toString();
     const order = await this.prisma.order.create({
       data:{
@@ -311,6 +281,7 @@ export class WalletService {
         userId:user.id,
         subTitle : `${toWallet.User.username}انتقال به `,
         date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+        payload : JSON.stringify(dto),
         desc :{
           create: [  // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
           {
@@ -321,10 +292,6 @@ export class WalletService {
       }
      }
     })
-
-  
-
-
     const fromUser = await  this.prisma.user.findUnique({
       where : {
         id : user.id
@@ -348,6 +315,27 @@ export class WalletService {
             isPaid :true ,
          }
         })
+        const resnumTo = Date.now().toString();
+        const toUserOrder = await this.prisma.order.create({
+          data:{
+            title : "انتقال اعتبار",
+            amount : +dto.amount,
+            type : OrderType.walletToWallet,
+            userId:user.id,
+            isPaid : true,
+            subTitle : `${fromUser.username}انتقال از `,
+            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            payload : JSON.stringify(dto),
+            desc :{
+              create: [  // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
+              {
+                key: "کد رهگیری",
+                value : resnumTo
+              }
+            ] 
+          }
+         }
+        })
         return {
           status : true,
         }
@@ -364,4 +352,114 @@ export class WalletService {
       }
     }  
   }
+
+  async createTransaction(customerId , amount,orderId ): Promise<INewResponseAPI<any>>{
+          const resnum = Date.now().toString();
+          // const config = await this.prisma.config.findFirst({})
+          console.log(11)
+          try {
+            console.log(1)
+            const wallet = await this.getWalletByUserId(customerId)
+            //get  payment link 
+            console.log(13)
+            const data = JSON.stringify({
+              "merchant_id": "da506228-c225-431c-91ff-ddc4abe8b995",
+              "amount": +amount,
+              "callback_url": "http://192.168.1.107:3000/transactions/callback",
+              "description": ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
+              "metadata": {"mobile": wallet.User.mobile,},
+              "order_id" : amount
+            });
+            
+            const configuration = {
+              method: 'post',
+              maxBodyLength: Infinity,
+              url: 'https://api.zarinpal.com/pg/v4/payment/request.json',
+              headers: {  
+                'Content-Type': 'application/json',
+                'accept': 'application/json'
+              },
+              data : data
+            }
+            const response = await axios(configuration);
+            console.log(response.data)
+            if(response.data.data.code == 100){
+                const transaction = await this.prisma.transaction.create({
+                  data : {
+                    destWalletId : wallet.id,
+                    amount :+amount,
+                    resnum: resnum,
+                    orderId,
+                    date : moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+                    securePan : response.data.data.authority,
+                  }
+                })
+                return {
+                    result:{
+                      RedirectURL : `https://www.zarinpal.com/pg/StartPay/${response.data.data.authority}`,
+                      Transaction : transaction ,
+                    }  ,
+                    status : true,
+                    statusCode : 0
+                }
+              }else{
+               return  {
+                  status : false,
+                }
+              }
+          }catch (e) {
+            console.log(e);
+            return  {
+              status : false,
+            }
+          }
+  }
+
+ async getMasterWallet (){
+  const masterWallet =await this.prisma.wallet.findFirst({
+    where: {
+      walletType : "MASTER"
+    },
+    select : {
+      id :true,
+      amount :true,
+      User : {
+        select :{
+          id :true
+        }
+      }
+    }
+  })
+  if(!masterWallet){
+    throw new ForbiddenException("Master wallet not founded")
+  }
+  return masterWallet
+ }
+
+ async registerInLastPaidUsersDb(fromUserId , toUserId):Promise<void>{
+    const isFirstTime  = await this.prisma.lastPaidFriends.findFirst({
+      where :{
+        AND : [
+          {fromUser : fromUserId},
+          {destUser : toUserId}
+        ]
+      }
+    })
+
+
+    if(isFirstTime){
+      return;
+    }
+    if(!isFirstTime){
+      await this.prisma.lastPaidFriends.create({
+        data :{
+          fromUser : fromUserId,
+          destUser:toUserId,
+        }
+      })
+      return;
+    }
+    return; 
+ }
+   
 }

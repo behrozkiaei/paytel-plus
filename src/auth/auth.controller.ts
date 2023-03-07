@@ -4,6 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto';
 import { LoginUserDto, verifyOtpDto } from './dto/create-user.dto';
+import { SetPassDto } from './dto/set-pass.dto';
 
 @Controller('auth')
 @ApiTags("Auth  Api's")
@@ -13,7 +14,6 @@ export class AuthController {
   @Post('signIn')
   @ApiOperation({ summary: 'User  signIn' })
   signIn(@Body() dto: LoginUserDto) {
-    console.log(dto);
     return this.authService.login(dto);
   }
 
@@ -28,4 +28,12 @@ export class AuthController {
   verifyOtp(@Body() dto: verifyOtpDto) {
     return this.authService.verifyOtp(dto);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('set-pass')
+  setPass(@Body() dto: SetPassDto) {
+    console.log(dto);
+    return this.authService.setPassword(dto);
+  }
+
 }

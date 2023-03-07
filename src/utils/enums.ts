@@ -17,9 +17,18 @@ export enum OtpType {
 }
 
 export enum OrderType {
-  bill = 'bill',
-  internet = 'internet',
-  charge = 'charge',
-  walletToWallet = 'walletToWallet',
-  increaseWallet = 'increaseWallet',
+  billByCredit = 'billByCredit',
+  billByWallet = 'billByWallet',
+  internetByWallet = 'internetByWallet',
+  internetByCredit = 'internetByCredit',
+  chargeByWallet = 'chargeByWallet',
+  chargeByCredit = 'chargeByCredit',
+  walletToWallet = 'walletToWallet', //done
+  increaseWallet = 'increaseWallet', // done
+  creditToOtherWallet = 'creditToOtherWallet',
+}
+enum CashbackState {
+  PENDING ="PENDING",// is pernding to cash back
+  DONE  ="DONE" ,// cash back is done
+  REJECTED="REJECTED" // cash back is not done
 }

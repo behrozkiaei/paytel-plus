@@ -1,3 +1,7 @@
+import { chargeDto } from './../dto/internet.dto';
+import { ChargePayload } from './../../utils/interfaces/charge-payload.interface';
+import { INewResponseAPI } from 'src/utils/interfaces/response-type';
+import { InternetDto } from '../dto/internet.dto';
 import {
   Body,
   Controller,
@@ -18,6 +22,8 @@ import { RolesGuard } from '../../auth/guard/role.guard';
 import { TransactionDto } from '../dto/transaction.dto';
 import { TransactionsService } from '../services/transactions.service';
 import { Role } from 'src/utils/enums';
+import { CanTransaction } from 'src/auth/decorator/canTransaction';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 @ApiTags("Transactions  Api's")
 @Controller('transaction')
@@ -28,6 +34,7 @@ export class TransactionsController {
 
   @Post('create')
   @Roles('ADMIN')
+  @CanTransaction()
   @ApiOperation({ summary: 'Create transaction method' })
   createTransaction(@Body() dto: TransactionDto) {
     return this.transactionService.createTransaction(dto);
@@ -53,5 +60,26 @@ export class TransactionsController {
     @Query('take', new DefaultValuePipe(10)) take?: number,
   ): any {
     return this.transactionService.getAllOrders(user, from, take);
+  }
+
+  @Post('buyInternet')
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+  @CanTransaction()
+  buyInternet(
+    @User() user: any,
+    @Body() dto: InternetDto,
+  ): Promise<INewResponseAPI<any>> {
+    return this.transactionService.buyInternet(user, dto);
+  }
+
+  @Post('buyCharge')
+  @CanTransaction()
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+  buyCharge(
+    @User() user: any,
+    @Body() dto: chargeDto,
+  ): Promise<INewResponseAPI<any>> {
+    console.log(dto);
+    return this.transactionService.buyCharge(user, dto);
   }
 }

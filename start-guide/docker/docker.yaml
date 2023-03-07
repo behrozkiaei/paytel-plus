@@ -1,0 +1,23 @@
+#docker network create mongo-net
+
+# docker run -p 6379:6379 -it redis/redis-stack-server:latest
+
+#docker run -d --net mongo-net --name mongo1 -p 27017:27017 mongo:latest mongod --replSet rs0 
+#docker run -d --net mongo-net --name mongo2 -p 27018:27017 mongo:latest mongod --replSet rs0
+#docker run -d --net mongo-net --name mongo3 -p 27019:27017 mongo:latest mongod --replSet rs0
+
+
+#in mongosh
+# start replica
+#rs.initiate()
+#rs.add("mongo2:27017")
+#rs.add("mongo3:27017")
+ 
+# create db name admin
+# connect to mongodb://127.0.0.1:27017/admin 
+
+ #//linke :
+#  DATABASE_URL ='mongodb://127.0.0.1:27017/admin?directConnection=true&serverSelectionTimeoutMS=2000'
+
+
+

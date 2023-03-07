@@ -49,6 +49,11 @@ export class UpdateUser {
   @IsOptional()
   @ApiProperty()
   lan?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty()
+  nationalCode?: string;
 }
 
 export class UpdateShenasnameImage {
@@ -79,4 +84,17 @@ export class BankAccount {
   @IsNotEmpty()
   @ApiProperty()
   sheba: string;
+}
+export class CheckPassDto{
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  password: string;
+}
+
+export class ListOfNumbers {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty()
+  listOfNumbers :string;
 }

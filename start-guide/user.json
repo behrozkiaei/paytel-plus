@@ -1,0 +1,27 @@
+[{
+  "_id": {
+    "$oid": "63f9f796c50600d35beb811f"
+  },
+  "mobile": "09116264382",
+  "role": "LEVEL1",
+  "active": true,
+  "verified": false,
+  "phone": "09116264382",
+  "createdAt": {
+    "$date": {
+      "$numberLong": "1676926078900"
+    }
+  },
+  "updatedAt": {
+    "$date": {
+      "$numberLong": "1677013026431"
+    }
+  },
+  "verified_bank": false,
+  "date": "1401/12/02 00:17:58",
+  "password": "1234",
+  "otpType": "Login",
+  "otpDate": "1401/12/03 00:27:06",
+  "name": "behroz",
+  "username": "behroz"
+}]

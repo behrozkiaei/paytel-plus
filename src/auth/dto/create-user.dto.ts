@@ -2,6 +2,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   Max,
@@ -18,6 +19,12 @@ import { OtpType } from 'src/utils/enums';
     @Min(11)
     @Max(11)
     mobile :string
+
+
+    @IsString()
+    @IsOptional()
+    @ApiProperty()
+    otpType :OtpType
   }
   
 
@@ -57,4 +64,10 @@ import { OtpType } from 'src/utils/enums';
     @IsNotEmpty()
     @ApiProperty()
     password :string
+
+    @IsString()
+    @IsOptional()
+    @ApiProperty()
+    fcmToken? :string
+
   }

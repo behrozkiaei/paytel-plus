@@ -36,6 +36,8 @@ export class JwtStrategy extends PassportStrategy(
           Wallet: true,
         },
       });
+      delete user.password2
+      delete user.password
       // console.log(user)
     return user;
   }

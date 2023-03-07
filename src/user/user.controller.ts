@@ -1,4 +1,4 @@
-import { BankAccount, UpdateAvatarDto, UpdateUser } from './dto/edit-user.dto';
+import { BankAccount, CheckPassDto, ListOfNumbers, UpdateAvatarDto, UpdateUser } from './dto/edit-user.dto';
 /* eslint-disable @typescript-eslint/no-var-requires */
 import {
   Body,
@@ -9,6 +9,7 @@ import {
   ParseFilePipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -26,6 +27,8 @@ import { User } from '../auth/decorator/user.decorator';
 import { JwtGuard } from '../auth/guard';
 import { RolesGuard } from '../auth/guard/role.guard';
 import { UserService } from './user.service';
+import { CanTransaction } from 'src/auth/decorator/canTransaction';
+import { IsNotEmpty, IsString } from 'class-validator';
 const moment = require('moment-jalaali');
 
 @UseGuards(JwtGuard, RolesGuard)
@@ -36,36 +39,12 @@ export class UserController {
   constructor(private userService: UserService) {}
   @Get('me')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+
   getMe(@User() user: any): Promise<INewResponseAPI<any>> {
     return this.userService.getMe(user);
   }
 
-  @Post('upload')
-  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './public/upload',
-        filename: (req, file, callback) => {
-          const ext = extname(file.originalname);
-          const newFileName = moment().format('jYYYY-jMM-jDD-HH-mm-ss') + ext;
-          callback(null, newFileName);
-        },
-      }),
-    }),
-  )
-  uploadFile(
-    @User() user: any,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [new MaxFileSizeValidator({ maxSize: 1000000 })],
-      }),
-    )
-    file: Express.Multer.File,
-  ) {
-    console.log(file);
-    return this.userService.uploadAvatar(user, file);
-  }
+
 
   @Get('user-info/:id')
   @Roles(Role.ADMIN)
@@ -75,7 +54,7 @@ export class UserController {
 
   @Get('user-by-wallet-code/:id')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  getUserInfoByWalletCode(@Param('code') code: string) {
+  getUserInfoByWalletCode(@Param('id') code: string) {
     return this.userService.getUserInfoByWalletCode(code);
   }
 
@@ -86,6 +65,16 @@ export class UserController {
     @Body() dto: UpdateUser,
   ): Promise<INewResponseAPI<any>> {
     return this.userService.updateUser(user, dto);
+  }
+
+  @Post('check-pass')
+  @Roles(Role.ADMIN, Role.LEVEL2, Role.LEVEL1 ,)
+  checkPass(
+    @User() user: any,
+    @Body() dto: CheckPassDto,
+  ): Promise<INewResponseAPI<any>> {
+    console.log(dto);
+    return this.userService.checkPass(user, dto);
   }
 
   @Patch('update-cartmaelli')
@@ -113,6 +102,7 @@ export class UserController {
     @User() user: string,
     @Body() dto: UpdateAvatarDto,
   ): Promise<INewResponseAPI<any>> {
+    
     const url = await this.userService.convertBase64toImage(dto.avatar);
     return this.userService.updateAvatar(user, url);
   }
@@ -122,6 +112,49 @@ export class UserController {
     @User() user: string,
     @Body() dto: BankAccount,
   ): Promise<INewResponseAPI<any>> {
+    console.log(dto);
+    
     return this.userService.updateBankAccount(user, dto);
   }
+
+  // http://localhost:3000/my-controller?list=string1,string2,string3
+
+  @Get('mutual-friends')
+  @Roles(Role.ADMIN,Role.LEVEL1,Role.LEVEL2)
+  mutualFriends(
+    @User() user: string,
+    @Query('list') list: string[],
+  )
+  : Promise<INewResponseAPI<any>> {  
+    return this.userService.findMutualFriends(user, list);
+  }
+ 
+
+  // @Post('upload')
+  // @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+  // @UseInterceptors(
+  //   FileInterceptor('file', {
+  //     storage: diskStorage({
+  //       destination: './public/upload',
+  //       filename: (req, file, callback) => {
+  //         const ext = extname(file.originalname);
+  //         const newFileName = moment().format('jYYYY-jMM-jDD-HH-mm-ss') + ext;
+  //         callback(null, newFileName);
+  //       },
+  //     }),
+  //   }),
+  // )
+  // uploadFile(
+  //   @User() user: any,
+  //   @UploadedFile(
+  //     new ParseFilePipe({
+  //       validators: [new MaxFileSizeValidator({ maxSize: 1000000 })],
+  //     }),
+  //   )
+  //   file: Express.Multer.File,
+  // ) {
+  //   console.log(file);
+  //   return this.userService.uploadAvatar(user, file);
+  // }
 }
+

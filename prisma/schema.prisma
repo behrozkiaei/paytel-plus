@@ -38,12 +38,17 @@ model User{
   dateVerified String? 
   date String? 
   password String?
+  password2 String?
+  loginTime String?
   otpType OtpType?  @default(Login)
   otpDate String?
   nationalCode String?
   cartMelli String?
   shenasname String?
+  fcmToken String?
   paymentRequest UserPaymentRequest[]
+  fromUsers LastPaidFriends[]  @relation("fromUserId")
+  destUsers LastPaidFriends[]  @relation("destUserId")
   order Order[]
   @@map("user")
 }
@@ -87,8 +92,8 @@ model Transaction {
     fee_type String?
     fee Int?
     //for order pruduct
-    order    Order  @relation(fields: [orderId], references: [id])
-    orderId  String @unique @db.ObjectId
+    order    Order?  @relation(fields: [orderId], references: [id])
+    orderId  String? @unique @db.ObjectId
     @@map("transaction")
 }
 model Order {
@@ -111,6 +116,8 @@ model Order {
     data2 String?
     data3 String?
     data4 String?
+    payload String?  /// should be fource to insert !!!!!!!!!!!!!!!!!!!
+
     @@map("order")
 }
 model keyValue {
@@ -139,12 +146,12 @@ model WalletTransfer {
 model UserPaymentRequest{
     id     String @id @default(auto()) @map("_id") @db.ObjectId
     user    User  @relation(fields: [userId], references: [id])
-    userId  String @unique @db.ObjectId
+    userId  String  @db.ObjectId
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     description String?
-    amount Float?
-    state CashbackState
+    amount Float
+    state CashbackState @default(PENDING)
     desc1  String?
     desc2 String?
     desc3 String?
@@ -167,6 +174,34 @@ model Config{
     kavenegar_token String?
     @@map("config")
   }
+
+ model InternetProduct{
+     id     String @id @default(auto()) @map("_id") @db.ObjectId
+     product_id String?
+     name String
+     amount String 
+     amount_rial String
+     sim_type String
+     internet_type String
+     operator String
+     days String
+     volume String 
+     unit String
+     course String
+     course_range String
+     date String
+     createdAt DateTime @default(now())
+     updatedAt DateTime @updatedAt
+     @@map("internetProduct")
+  }
+
+model LastPaidFriends{
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  fromUser    User  @relation("fromUserId",fields: [fromUserId], references: [id])
+  fromUserId String  @db.ObjectId
+  destUser    User  @relation("destUserId",fields: [destUserId], references: [id])
+  destUserId String  @db.ObjectId
+}
 enum CashbackState {
   PENDING // is pernding to cash back
   DONE   // cash back is done
@@ -188,9 +223,13 @@ enum OtpType {
   RessetPass
 }
 enum OrderType {
-  bill
-  internet
-  charge
+  billByCredit
+  billByWallet
+  internetByWallet
+  internetByCredit
+  chargeByWallet
+  chargeByCredit
   walletToWallet
   increaseWallet
+  creditToOtherWallet
 }

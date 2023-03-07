@@ -1,0 +1,13 @@
+{
+    "type": "service_account",
+    "project_id": "paytel-ab99f",
+    "private_key_id": "2e32754bcd35f3d778a5e95adc4d014cdd90a69d",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCus0GG0zH9aia2\nzLUZKOgRzaBOVzBTeq91slKe66spzw8GZkONavIX2US8eJtkWEFRt5Xa1Eyk5jif\nKF6AfKiMRM31kq2hmN0T7I6L5+S2xefNTKYm2XZvLqYHCnLDMwk9ZFIS0gA0nEDe\nLTB5pKY7d+r9rnzrMVUN7JTDXDqe9BMMunREw9xfTCzDy7Ef/Mp40xYlBGas46fy\nlKW+S+98Cx3aIfzijIQ6KzFGg7T6dxQa7hAWnU6Dnf0x2eoZCD1Ahte8K4Zjygm5\nvt/yO+Z3PdZBVBV4zCYro/2FHI4pkvWhsxld0vjs77sRBdSEMM8NYSXKkRDWJioG\n+nqYTHqpAgMBAAECggEAH/uVPXegqUIrwD+N0ANbKRc6B92SbVYClUuGMK34cfkE\nSSmjqFox5AfUu6Rg3mgB3VH8z0kalv3G0+xyEJfBy5w1EIY/31u67ZDbL+XOS1/D\n5iPoLyiUtBoYLyXMiMvpHyIknGlxvC/2+DXRsBNik3SKwtKU8AHiDmCHg5R47ux2\nh90OjKptUyHiEKt4gjBtgF6snbg+NY/ks05XBGDOibgd/kq7AMYb+2waWfSOZhBX\n9yx+5BT4YVRAz8RnOcu9oCXvPtYCjM7Ky2G3Xg9g1MdUwJTJxOYV3iy+0gKdE0Lj\n3kciyTQzgxnk6XQXNKr0OR0jhIGAKpDauD2PWhSv2QKBgQDi/HIMzyVIOUfdzNa0\nWzIihUGAUv+zkktDdz3TpYwUHo1PpifmVk3ra9YzBsBoSETjbTXpCKEXFUplF3XB\n+9UoyUyjC/HRxxEGWFVPU/EiVAumyLQX79krygSiRK5/3+9sE8c7PJRGWN/tSK6V\nIOwQ0rumhUD7AfCiTyWibpaaxwKBgQDFB+KIc8N94ddOA5krwoKLQfTopEvhiYCT\nLxoA7+oVmosrI0ao7fGY5r1V22rfOX+vYyiNzP76/54Do/z+NEPyzGnipybbV7DJ\nIImN5Fizk6NS2YEWStykr9SXk4cf9Q9kfRYifGrvXFeqjEcEe1VIEF7Q3t/A6B2w\n1Q6XOJpPDwKBgQC9udquoDp+avqKB1xzNkLqnc2JMFbwxthIFRRFovs6Gett5uk0\n23CX1fQdhIgw4i9KlY9ZMFBN1grwArL4KMIcLF31btd6y9SMJCtyeix00CFJEDuQ\nQneY5WwIIjZlRk1+Xe3KsrERN9o8IONkXTdUPICDCKCu7gkv8c34Pk1+IwKBgDiP\nO+NJv/uZ4hF+DPE34/uP0nsZ9sJmk2cs5T0RodPTylF2zejebTUkP4Ou+e3cdp/l\nShXym9t3l2eaIpziagL/1QGAVDIw6QnDclkuDJx4LDEzSNAaa15HLzLX4bk1wtZo\n5fq+VoAhtPS7UgOiV+fY8y7oW7jnqOZDMu4MDJfXAoGBALxHogYggjJq4fRWT8ey\nBwB+Zx+M3+r6MuY826uSLXAPxSn7oLOX7DNuMMHrBGHp+hDHTFHjNu5sjt7/FfhF\nBiT7+2KPD8MlIP73vCsfbaI914oP8av4xkwgp2wJXTuYzz6490PvRPDZii/L7MIH\nD6XY+qbruN9KsILTykdbDF5a\n-----END PRIVATE KEY-----\n",
+    "client_email": "firebase-adminsdk-350ss@paytel-ab99f.iam.gserviceaccount.com",
+    "client_id": "104920498868317578733",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-350ss%40paytel-ab99f.iam.gserviceaccount.com"
+  }
+  

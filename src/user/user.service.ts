@@ -1,4 +1,4 @@
-import { BankAccount, UpdateUser } from './dto/edit-user.dto';
+import { BankAccount, CheckPassDto, UpdateUser } from './dto/edit-user.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
@@ -6,126 +6,183 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { EditUserDto } from './dto';
+import { INewResponseAPI } from 'src/utils/interfaces/response-type';
+import * as bcrypt from 'bcrypt';
+import * as admin from 'firebase-admin';
+import { phoneNumberNormalizer, phoneNumberValidator } from '@persian-tools/persian-tools';
+import { OrderType } from 'src/utils/enums';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const  moment = require('moment-jalaali')
-@Injectable()
+@Injectable() 
 export class UserService {
-  constructor(private prisma: PrismaService) {}
-  async editUser(
-    userId: string,
-    dto: EditUserDto,
-  ) {
-    const user = await this.prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        ...dto,
-      },
-    });
-
-    delete user.password;
-
-    return user;
-  }
-  async getUserInfo(id){
-    try{
-      const userInfo = await this.prisma.user.findUnique({
-        where : {
-          id: id
-        },
-        include :{
-          Wallet:true
-        }
-      })
-
-      return{
-        status : true,
-        result : userInfo,
-        statusCode : 0,
-      }
-    }catch(e){
-      return {result : false}
-    }
-  }
-  async getUserInfoByWalletCode(code){
-    try{
-
-      const userWallet =await this.prisma.wallet.findFirst({
+    constructor(private prisma: PrismaService) {}
+    async editUser(
+      userId: string,
+      dto: EditUserDto,
+    ) {
+      const user = await this.prisma.user.update({
         where: {
-           walletCode  :code,
-         },
-         select:{
-          User : {select: {
-            id : true
-            }
-          }
-         }
-      })
-      if(!userWallet){
-        throw new ForbiddenException("User Not Founded")
-      }
-
-
-      const userInfo = await this.prisma.user.findUnique({
-        where : {
-          id: userWallet.User.id
+          id: userId,
         },
-        select:{
-          name : true,
-          avatar : true,
-          username : true,
-        }
-      })
+        data: {
+          ...dto,
+        },
+      });
 
-      return{
-        status : true,
-        result : userInfo,
-        statusCode : 0,
-      }
-    }catch(e){
-      console.log(e)
-      return {result : false}
+      delete user.password;
+
+      return user;
     }
-  }
-  
-  async getMe(user:any){
-    try{
-
+    async getUserInfo(id){
+      try{
         const userInfo = await this.prisma.user.findUnique({
           where : {
-            id: user.id
+            id: id
           },
           include :{
-            Wallet:true,
-            order : {
-              orderBy  : {
-                createdAt : "desc",
-              },
-              take: 10,
-            } 
-          },
+            Wallet:true
+          }
         })
+
         return{
           status : true,
           result : userInfo,
           statusCode : 0,
         }
-    }catch(e){
-      console.log(e)
-      return {result : false}
+      }catch(e){
+        return {result : false}
+      }
     }
-  }
-
-    async uploadAvatar(user,file){
+    async getUserInfoByWalletCode(code){
       try{
 
+        const userWallet =await this.prisma.wallet.findFirst({
+          where: {
+            walletCode  :code,
+          },
+          select:{
+            User : {select: {
+              id : true
+              }
+            }
+          }
+        })
+        if(!userWallet){
+          return{
+            status:false,
+            message: "user Not founded"
+          }
+        }
+
+
+        const userInfo = await this.prisma.user.findUnique({
+          where : {
+            id: userWallet.User.id
+          },
+          select:{
+            name : true,
+            avatar : true,
+            username : true,
+          }
+        })
+
+        return{
+          status : true,
+          result : userInfo,
+          statusCode : 0,
+        }
+      }catch(e){
+        return {result : false}
+      }
+    }
+    
+    async getMe(user:any){
+      try{
+
+          const userInfo = await this.prisma.user.findUnique({
+            where : {
+              id: user.id
+            },
+            include :{
+              Wallet:true,
+              order : {
+                orderBy  : {
+                  createdAt : "desc",
+                },
+                take: 10,
+              }, 
+              destUsers : {
+                include :{
+                  destUser :{
+                    select:{
+                      name:true,
+                      Wallet :{
+                        select : {
+                          walletCode:true,
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+          })
+          return{
+            status : true,
+            result : userInfo,
+            statusCode : 0,
+          }
+      }catch(e){
+        return {result : false}
+      }
+    }
+
+      async uploadAvatar(user,file){
+        try{
+
+            const userInfo = await this.prisma.user.findUnique({
+                where:{
+                  id : user.id
+                }
+            })
+
+            if(!userInfo){
+              return {
+                status : false,
+                message:"User not found"
+              }
+            }
+            await this.prisma.user.update({
+              where:{
+                id :userInfo.id
+              },
+              data :{
+                avatar : file.filename
+              }
+            })
+            return {
+              status :true,
+              result:null,
+            }
+      }catch(error){
+
+            return {
+              status:false
+            }
+            
+      }
+    }
+    
+
+    // updateIndentityImage
+    async updateIdentityImage(user:any,url :string){
+      try{
           const userInfo = await this.prisma.user.findUnique({
               where:{
                 id : user.id
               }
           })
-
           if(!userInfo){
             return {
               status : false,
@@ -137,12 +194,12 @@ export class UserService {
               id :userInfo.id
             },
             data :{
-              avatar : file.filename
+              shenasname :url
             }
           })
           return {
             status :true,
-            result:null,
+            result: url,
           }
     }catch(error){
 
@@ -152,10 +209,8 @@ export class UserService {
           
     }
   }
-  
-
-  // updateIndentityImage
-  async updateIdentityImage(user:any,url :string){
+  // updateAvatarImage
+  async updateAvatar(user:any,url :string){
     try{
         const userInfo = await this.prisma.user.findUnique({
             where:{
@@ -173,7 +228,7 @@ export class UserService {
             id :userInfo.id
           },
           data :{
-            shenasname :url
+            avatar :url
           }
         })
         return {
@@ -187,195 +242,250 @@ export class UserService {
         }
         
   }
-}
-// updateAvatarImage
-async updateAvatar(user:any,url :string){
-  try{
-      const userInfo = await this.prisma.user.findUnique({
-          where:{
-            id : user.id
+  }
+    // updateNationalCardImage
+    async updateNationalCardImage(user:any,url:string){
+      try{
+          const userInfo = await this.prisma.user.findUnique({
+              where:{
+                id : user.id
+              }
+          })
+          if(!userInfo){
+            return {
+              status : false,
+              message:"User not found"
+            }
           }
-      })
-      if(!userInfo){
-        return {
-          status : false,
-          message:"User not found"
-        }
-      }
-      await this.prisma.user.update({
-        where:{
-          id :userInfo.id
-        },
-        data :{
-          avatar :url
-        }
-      })
-      return {
-        status :true,
-        result: url,
-      }
-}catch(error){
+          await this.prisma.user.update({
+            where:{
+              id :userInfo.id
+            },
+            data :{
+              cartMelli :url
+            }
+          })
+          return {
+            result: url,
+            status :true,
+          }
+    }catch(error){
 
-      return {
-        status:false
+          return {
+            status:false
+          }
+          
+    }
+  }
+    // updatename
+    async updatename(user:any,dto:UpdateUser){
+      try{
+          const userInfo = await this.prisma.user.findUnique({
+              where:{
+                id : user.id
+              }
+          })
+          if(!userInfo){
+            return {
+              status : false,
+              message:"User not found"
+            }
+          }
+          await this.prisma.user.update({
+            where:{
+              id :userInfo.id
+            },
+            data :{
+              cartMelli : dto.name
+            }
+          })
+          return {
+            status :true,
+            result:null,
+          }
+    }catch(error){
+
+          return {
+            status:false
+          }
+          
+    }
+  }
+      // updateUsername
+      async updateUser(user:any,dto:UpdateUser){
+        try{
+            const userInfo = await this.prisma.user.findUnique({
+                where:{
+                  id : user.id
+                }
+            })
+            if(!userInfo){
+              return {
+                status : false,
+                message:"User not found"
+              }
+            }
+            await this.prisma.user.update({
+              where:{
+                id :userInfo.id
+              },
+              data :{
+                username : dto.username ?? userInfo.username,
+                name  : dto.name ?? userInfo.username,
+                address : dto.address ?? userInfo.address,
+                description : dto.description ?? userInfo.description,
+                email: dto.email ?? userInfo.email,
+                lat : dto.lat ?? userInfo.lat,
+                lan : dto.lan ?? userInfo.lan,
+                nationalCode : dto.nationalCode ?? userInfo.nationalCode,
+              }
+            })
+            return {
+              status :true,
+              result:null,
+            }
+      }catch(error){
+
+            return {
+              status:false
+            }
+            
       }
+    }
+
+    //update bank acount
+    async updateBankAccount(user:any,dto:BankAccount){
+      try{
+          const userInfo = await this.prisma.user.findUnique({
+              where:{
+                id : user.id
+              }
+          })
+          if(!userInfo){
+            return {
+              status : false,
+              message:"User not found"
+            }
+          }
+          await this.prisma.user.update({
+            where:{
+              id :userInfo.id
+            },
+            data :{
+              card : dto.card,
+              sheba : dto.sheba,
+              verified_bank :false
+            }
+          })
+          return {
+            status :true,
+            result:null,
+          }
+    }catch(error){
+
+          return {
+            status:false
+          }
+          
+    }
+  }
+
+  async convertBase64toImage(base64:string): Promise<string>{
+      const base64Image = base64;
+      const imageName = uuidv4() + '.png';
+      const imagePath = path.join('public/upload', imageName);
+      const base64Data = base64Image.replace(/^data:image\/png;base64,/, '');
+      fs.writeFileSync(imagePath, base64Data, 'base64');
+
+      const url = `public/upload/${imageName}`; // Change this to your own URL
+      return url;
+  }
+  async checkPass(user:any,dto:CheckPassDto){
+    try{
+
+        const userInfo = await this.prisma.user.findUnique({where:{id : user.id}})
+        const isMatch =  bcrypt.compareSync(dto.password,userInfo.password2)
+
+        if(isMatch){
+         await this.sendPushNotification('feAjpjCmQHiiZ2VbGi7RJW:APA91bEDqXX83Q5BQOY-a5r443ajNI8NCfgERkwcjl97fs9pTw_LsosTJKeZPso6a9tzljCQlMhIdPaS8dcTHC8opoNS29o2EpMc0WjI1X54XdnHAKfdRk6dXExFyEqa-2pG_Gu0LtI2',{'key':"velueee"})
+        await   this.prisma.user.update({
+            where :{id: user.id}, 
+            data :{loginTime :  moment().format('jYYYY/jMM/jDD HH:mm:ss')}
+          })
+          return {
+            status :true,
+          }
+
+        } else{
+          console.log(222)
+          throw Error("پسورد صحیح نیست")
+        }
       
-}
-}
-  // updateNationalCardImage
-  async updateNationalCardImage(user:any,url:string){
-    try{
-        const userInfo = await this.prisma.user.findUnique({
-            where:{
-              id : user.id
-            }
-        })
-        if(!userInfo){
-          return {
-            status : false,
-            message:"User not found"
-          }
-        }
-        await this.prisma.user.update({
-          where:{
-            id :userInfo.id
-          },
-          data :{
-            cartMelli :url
-          }
-        })
-        return {
-          result: url,
-          status :true,
-        }
-  }catch(error){
-
-        return {
-          status:false
-        }
-        
+    }catch(e){
+      return {
+        status :false,
+        message : e.message?? "مشکلی در ورود رخ داده است "
+      }
+    }
   }
-}
-  // updatename
-  async updatename(user:any,dto:UpdateUser){
-    try{
-        const userInfo = await this.prisma.user.findUnique({
-            where:{
-              id : user.id
-            }
-        })
-        if(!userInfo){
-          return {
-            status : false,
-            message:"User not found"
-          }
-        }
-        await this.prisma.user.update({
-          where:{
-            id :userInfo.id
-          },
-          data :{
-            cartMelli : dto.name
-          }
-        })
-        return {
-          status :true,
-          result:null,
-        }
-  }catch(error){
+  async sendPushNotification(deviceToken: string, data: any) {
+    const message = {
+      notification: {
+        title: 'YOUR_NOTIFICATION_TITLE',
+        body: 'YOUR_NOTIFICATION_BODY',
+      },
+      data: data,
+      token: deviceToken,
+    };
 
-        return {
-          status:false
-        }
-        
-  }
-}
-    // updateUsername
-    async updateUser(user:any,dto:UpdateUser){
-      try{
-          const userInfo = await this.prisma.user.findUnique({
-              where:{
-                id : user.id
-              }
-          })
-          if(!userInfo){
-            return {
-              status : false,
-              message:"User not found"
-            }
-          }
-          await this.prisma.user.update({
-            where:{
-              id :userInfo.id
-            },
-            data :{
-              username : dto.username ?? userInfo.username,
-              name  : dto.name ?? userInfo.username,
-              address : dto.address ?? userInfo.address,
-              description : dto.description ?? userInfo.description,
-              email: dto.email ?? userInfo.email,
-              lat : dto.lat ?? userInfo.lat,
-              lan : dto.lan ?? userInfo.lan,
-            }
-          })
-          return {
-            status :true,
-            result:null,
-          }
-    }catch(error){
-
-          return {
-            status:false
-          }
-          
+    try {
+      const response = await admin.messaging().send(message);
+      console.log('Successfully sent message:', response);
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   }
 
-  //update bank acount
-  async updateBankAccount(user:any,dto:BankAccount){
-    try{
-        const userInfo = await this.prisma.user.findUnique({
-            where:{
-              id : user.id
-            }
-        })
-        if(!userInfo){
-          return {
-            status : false,
-            message:"User not found"
-          }
-        }
-        await this.prisma.user.update({
-          where:{
-            id :userInfo.id
-          },
-          data :{
-            card : dto.card,
-            sheba : dto.sheba,
-            verified_bank :false
-          }
-        })
-        return {
-          status :true,
-          result:null,
-        }
-  }catch(error){
 
-        return {
-          status:false
+  async findMutualFriends(user ,list): Promise<INewResponseAPI<any>>{
+    try{
+      const listOfNormalNumbers =[]
+      for await (const item of list){
+        if(phoneNumberValidator(item)){
+          const mobile = phoneNumberNormalizer(item , '0');
+          listOfNormalNumbers.push(mobile);
         }
-        
+      }
+      const users = await    this.prisma.user.findMany({
+        where : {
+          mobile : {
+            in : listOfNormalNumbers
+          }
+        },
+        select : {
+          Wallet : {
+            select : {
+              walletCode:true,
+            }
+          },
+          avatar: true,
+          name : true,
+        },
+      })
+    return {
+      status : true, 
+      result :users
+    }
+  }catch(e){
+    console.log(e)
+    return {
+      status:false,
+      message: 'somethings went wrong!'
+    }
   }
 }
 
-async convertBase64toImage(base64:string): Promise<string>{
-     const base64Image = base64;
-    const imageName = uuidv4() + '.png';
-    const imagePath = path.join('public/upload', imageName);
-    const base64Data = base64Image.replace(/^data:image\/png;base64,/, '');
-    fs.writeFileSync(imagePath, base64Data, 'base64');
 
-    const url = `public/upload/${imageName}`; // Change this to your own URL
-    return url;
-}
+
+  
 }

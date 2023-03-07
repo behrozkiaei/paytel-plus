@@ -39,7 +39,7 @@ build/Release
 
 # Dependency directories
 node_modules/
-
+upload/***
 jspm_packages/
 dist/
 

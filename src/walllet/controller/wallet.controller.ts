@@ -13,6 +13,7 @@ import { WalletService } from '../services/wallet.service';
 import { Response } from 'express';
 import { TransferDto, UserTransferDto } from '../dto/transfer.dto';
 import { Role } from 'src/utils/enums';
+import { CanTransaction } from 'src/auth/decorator/canTransaction';
 @ApiTags("Wallet  Api's")
 @Controller("wallet")
 @UseGuards(JwtGuard,RolesGuard)
@@ -54,16 +55,16 @@ export class WalletController {
     getWalletByUserId(@User() user :any){
        return  this.walletService.getWalletByUserId(user.id)
     }
-    
+
     @Post('user-transfer')
+    @CanTransaction()
     @Roles(Role.LEVEL1,Role.LEVEL2) 
     transferMoneyByUser(@User() user: any , @Body() dto : UserTransferDto){
       return this.walletService.transferByUser(user,dto)
     }
-
     @Post('user-increase-wallet')
     @Roles(Role.ADMIN,Role.LEVEL1,Role.LEVEL2) 
     userIncreaseWallet(@User() user: any , @Body() dto : PaymentRequestDto){
-      return this.walletService.customerPaymentRequest(user,dto.amount)
+      return this.walletService.customerPaymentRequest(user,dto.amount , dto)
     }
 }

@@ -9,7 +9,13 @@ import { join } from 'path';
 import { AppModule } from './app.module';
 import hbs = require('hbs')
 import * as bodyParser from 'body-parser';
+import * as admin from 'firebase-admin';
 
+const serviceAccount = require('../google-services.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 import session = require('express-session');
 // somewhere in your initialization file
 async function bootstrap() {
@@ -46,8 +52,8 @@ async function bootstrap() {
       }),
     );
     // Increase maximum request payload size to 10mb
-    app.use(bodyParser.json({ limit: '4mb' }));
-    app.use(bodyParser.urlencoded({ limit: '4mb', extended: true }));
+    app.use(bodyParser.json({ limit: '10mb' }));
+    app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
     // app.use(csurf());
     app.setBaseViewsDir(join(__dirname, '..', 'views'));

@@ -1,0 +1,22 @@
+[{
+  "_id": {
+    "$oid": "63f3dc7f5ea39ed82438d37e"
+  },
+  "userId": {
+    "$oid": "63f9f796c50600d35beb811f"
+  },
+  "amount": 50012000,
+  "walletCode": "100000",
+  "walletType": "MASTER",
+  "createdAt": {
+    "$date": {
+      "$numberLong": "1676926079030"
+    }
+  },
+  "updatedAt": {
+    "$date": {
+      "$numberLong": "1676969135084"
+    }
+  },
+  "date": "1401/12/02 00:17:58"
+}]

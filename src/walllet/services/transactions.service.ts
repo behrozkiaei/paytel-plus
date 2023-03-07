@@ -1,7 +1,16 @@
+import { User } from 'src/auth/decorator/user.decorator';
+import { INewResponseAPI } from 'src/utils/interfaces/response-type';
+import { InternetDto, chargeDto } from '../dto/internet.dto';
+import { ServicesService } from './../../services/services.service';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { OrderType } from 'src/utils/enums';
 import { PrismaService } from '../../prisma/prisma.service';
+import { OrderMakerService } from './order-maker/order-maker.service';
 import { WalletService } from './wallet.service';
+import { InternetProducts, internetPayloadForRequest } from 'src/utils/interfaces/internet-products-model';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const moment = require('moment-jalaali');
 
 @Injectable()
@@ -9,6 +18,8 @@ export class TransactionsService {
   constructor(
     private prisma: PrismaService,
     private walletService: WalletService,
+    private OrderMakerService: OrderMakerService,
+    private services: ServicesService,
   ) {}
 
   async createTransaction(dto: any) {
@@ -30,6 +41,10 @@ export class TransactionsService {
       const transaction = await this.prisma.transaction.findUnique({
         where: {
           id,
+        },
+        include: {
+          order: true,
+          wallet: true,
         },
       });
       if (transaction) {
@@ -173,6 +188,14 @@ export class TransactionsService {
           },
         ],
       });
+      console.log({
+        result: {
+          data: order,
+          length: count._count.id,
+        },
+        status: true,
+        statusCode: 0,
+      });
       return {
         result: {
           data: order,
@@ -255,34 +278,6 @@ export class TransactionsService {
     }
   }
 
-  async handleCallbackTest() {
-    try {
-      const transaction = await this.prisma.transaction.findFirst({
-        where: {
-          securePan: 'A00000000000000000000000000410663385',
-        },
-        include: {
-          wallet: true,
-          order: true,
-        },
-      });
-      const order = await this.prisma.order.findUnique({
-        where: { id: transaction.order.id },
-        include: {
-          desc: true,
-        },
-      });
-      console.log(order.desc);
-      return {
-        status: true,
-        message: 'تراکنش موفق',
-        result: { desc: order.desc, Amount: transaction.amount + '' },
-      };
-    } catch (e) {
-      console.log(e);
-    }
-  }
-
   async handleCallback(query: any) {
     console.log(query);
     if (query.Status != 'OK') {
@@ -298,7 +293,9 @@ export class TransactionsService {
           },
           include: {
             wallet: true,
-            order: true,
+            order: {
+              include: { desc: true },
+            },
           },
         });
         if (!transaction)
@@ -342,9 +339,8 @@ export class TransactionsService {
             fee_type: response.data.data.fee_type,
             fee: response.data.data.fee,
           });
-          console.log(7);
-          // if transaction is increse my wallet acount balance
-          if (transaction.wallet) {
+
+          if (transaction.order?.type == OrderType.increaseWallet) {
             const masterWallet = await this.walletService.getWalletByType(
               'MASTER',
             );
@@ -358,45 +354,42 @@ export class TransactionsService {
                 transaction.amount,
                 'تراکنش بانکی',
               );
-            if (!transfer) {
+            if (!transfer.status) {
               throw new Error('err');
             }
-          }
-
-          //the transaction is buying a product or service
-          if (!transaction.wallet) {
-            //now if is the order to be done for user it should be done now
-            //now if is the order to be done for user it should be done now
-            //now if is the order to be done for user it should be done now
-            //now if is the order to be done for user it should be done now
-          }
-
-          await this.prisma.order.update({
-            where: {
-              id: transaction.order.id,
-            },
-            data: {
-              date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-              isPaid: true,
-              datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-              desc: {
-                create: [
-                  {
-                    key: 'شماره کارت',
-                    value: response.data.data.card_pan.toString(),
-                  },
-                  {
-                    key: 'شماره تراکنش',
-                    value: response.data.data.ref_id.toString(),
-                  },
-                  {
-                    key: 'کد رهگیری',
-                    value: transaction.resnum,
-                  },
-                ],
+            await this.prisma.order.update({
+              where: {
+                id: transaction.order.id,
               },
-            },
-          });
+              data: {
+                date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+                isPaid: true,
+                datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+                desc: {
+                  create: [
+                    {
+                      key: 'شماره کارت',
+                      value: response.data.data.card_pan.toString(),
+                    },
+                    {
+                      key: 'شماره تراکنش',
+                      value: response.data.data.ref_id.toString(),
+                    },
+                    {
+                      key: 'کد رهگیری',
+                      value: transaction.resnum,
+                    },
+                  ],
+                },
+              },
+            });
+          }
+          if (transaction.order?.type == OrderType.internetByCredit) {
+            return await this.buyChargeAndWalletTransfer(transaction.order.id);
+          }
+          if (transaction.order?.type == OrderType.chargeByCredit) {
+            return await this.buyChargeAndWalletTransfer(transaction.order.id);
+          }
           const order = await this.prisma.order.findUnique({
             where: { id: transaction.order.id },
             include: {
@@ -421,5 +414,227 @@ export class TransactionsService {
         return { status: false, message: 'تراکنش ناموفق بود' };
       }
     }
+  }
+
+  async buyInternet(
+    user: any,
+    dto: InternetDto,
+  ): Promise<INewResponseAPI<any>> {
+    try {
+      const product = await this.prisma.internetProduct.findFirst({
+        where: {
+          product_id: dto.product_id,
+        },
+      });
+      const payload: InternetProducts = {
+        ...dto,
+        amount: product.amount,
+        internet_type: product.internet_type,
+        name: product.name,
+      };
+      const type = dto.fromWallet
+        ? OrderType.internetByWallet
+        : OrderType.internetByCredit;
+      const order = await this.OrderMakerService.makeOrder(type, user, payload);
+
+      if (type == OrderType.internetByCredit) {
+        const transaction = await this.walletService.createTransaction(
+          user.id,
+          product.amount,
+          order,
+        );
+        return { ...transaction };
+      }
+      return await this.buyInternetAndWalletTransfer(order.id);
+    } catch (e) {
+      return {
+        status: false,
+        message: e.message ?? 'مشکل در برقرای سرویس',
+      };
+    }
+  }
+
+  async buyCharge(user: any, dto: chargeDto): Promise<INewResponseAPI<any>> {
+    try {
+      const type = dto.fromWallet
+        ? OrderType.chargeByWallet
+        : OrderType.chargeByCredit;
+      const order = await this.OrderMakerService.makeOrder(type, user, dto);
+
+      if (type == OrderType.chargeByCredit) {
+        const transaction = await this.walletService.createTransaction(
+          user.id,
+          dto.amount,
+          order,
+        );
+        return { ...transaction };
+      }
+      return await this.buyChargeAndWalletTransfer(order.id);
+    } catch (e) {
+      console.log(e);
+      return {
+        status: false,
+        message: e.message ?? 'مشکل در برقرای سرویس',
+      };
+    }
+  }
+
+  async buyChargeAndWalletTransfer(orderId): Promise<INewResponseAPI<any>> {
+    try{
+
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+      });
+      const userInfo = await this.prisma.user.findUnique({
+        where: { id: order.userId },
+        include: { Wallet: true },
+      });
+      const dto: chargeDto = JSON.parse(order.payload);
+      if (+userInfo?.Wallet?.amount < +dto?.amount) {
+        throw Error('موجودی شما کافی نیست');
+      }
+    const master = await this.walletService.getMasterWallet();
+    //try to transmit user wallet amount
+    const transferResult = await this.walletService.transferMoneyWallet2Wallet(
+      userInfo.Wallet.id,
+      master.id,
+      dto.amount,
+      'تراکنش خرید شارژ',
+      );
+      if (!transferResult) {
+        throw Error('متاسفانه انتقال اعتبار ناموفق بود');
+      }
+      
+      const buyCharge = await this.services.buyCharge(order.id);
+      console.log(1)
+      if (!buyCharge.status) {
+        await this.walletService.transferMoneyWallet2Wallet(
+          master.id,
+          userInfo.Wallet.id,
+          dto.amount,
+          'ناموفق- بازگشت پول - تراکنش خرید شارژ',
+          );
+          throw Error(buyCharge.message ?? 'متاسفانه انتقال اعتبار ناموفق بود');
+        }
+        console.log(2)
+        const payload = JSON.parse(order.payload);
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            isPaid: true,
+            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            payload: JSON.stringify({
+              ...payload,
+              trans_id: buyCharge.result.trans_id,
+            }),
+            desc: {
+              create: [
+                {
+                  key: 'تاریخ',
+                  value: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+                },
+                {
+                  key: 'موبایل',
+                  value: dto.mobile,
+                },
+                {
+                  key: 'شماره پیگیری',
+                  value: buyCharge.result.ref_code.toString(),
+                },
+              ],
+            },
+          },
+        });
+        console.log(3)
+        return { ...buyCharge };
+      }catch(e){
+        console.log(e);
+        return {
+          status:false,
+          message :e.message ?? "مشکل در برقراری سرویس رخ داده است"
+        }
+      }
+  }
+
+  async buyInternetAndWalletTransfer(orderId) {
+    try{
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { user: { include: { Wallet: true } } },
+    });
+    const masterWallet = await this.walletService.getWalletByType('MASTER');
+    if (!masterWallet) {
+      throw new Error('err');
+    }
+    const dto: InternetProducts = JSON.parse(order.payload);
+    const transfer = await this.walletService.transferMoneyWallet2Wallet(
+      order.user.Wallet.id,
+      masterWallet.id,
+      dto.amount,
+      'تراکنش خرید اینترنت',
+    );
+    if (!transfer.status) {
+      throw new Error('err');
+    }
+    const buyInternet = await this.services.buyInternet(order.id);
+    // const buyInternet = {
+    //   status: true,
+    //   result: { code: 1, trans_id: '14196968', ref_code: 7198612477 }
+    // }
+    console.log(buyInternet);
+    
+    if (!buyInternet.status) {
+      const transfer = await this.walletService.transferMoneyWallet2Wallet(
+        masterWallet.id,
+        order.user.Wallet.id,
+        dto.amount,
+        'برگشت اعتبار تراکنش خرید اینترنت ',
+      );
+      if (!transfer.status) {
+        throw new Error('err');
+      }
+      return {
+        ...buyInternet,
+      };
+    }
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        isPaid: true,
+        payload: JSON.stringify({
+          ...dto,
+          trans_id: buyInternet.result.trans_id.toString(),
+          ref: buyInternet.result.ref_code.toString(),
+        }),
+        desc: {
+          create: [
+            {
+              key: 'نام بسته',
+              value: dto.name,
+            },
+            {
+              key: 'تاریخ',
+              value: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            },
+            {
+              key: 'شماره',
+              value: dto.mobile,
+            },
+            {
+              key: 'شماره پیگیری',
+              value: buyInternet.result.ref_code.toString(),
+            },
+          ],
+        },
+      },
+    });
+    return { ...buyInternet };
+  }catch(e){
+    console.log(e);
+    return {
+      status:false,
+      message :e.message ?? "مشکل در برقراری سرویس رخ داده است"
+    }
+  }
   }
 }

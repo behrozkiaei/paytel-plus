@@ -5,13 +5,9 @@ const fs        = require('fs');
 module.exports.jsonTransform = function(data, columns) {
     let final = [];
     for (let row of data) {
-        console.log(row)
         let obj = {};
         for (let columnKey in columns) {
-            console.log(columnKey)
             let key = _.get(columns, columnKey);
-            console.log(key)
-            console.log(row)
             console.log(_.get(row, columnKey))
             obj[key] = _.get(row, columnKey)
         }

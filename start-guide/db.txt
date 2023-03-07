@@ -1,0 +1,49 @@
+users ==> 
+{
+  "mobile": "09116264382",
+  "role": "LEVEL1",
+  "active": true,
+  "verified": false,
+  "phone": "09116264382",
+  "createdAt": {
+    "$date": {
+      "$numberLong": "1676926078900"
+    }
+  },
+  "updatedAt": {
+    "$date": {
+      "$numberLong": "1677013026431"
+    }
+  },
+  "verified_bank": false,
+  "date": "1401/12/02 00:17:58",
+  "password": "1234",
+  "otpType": "Login",
+  "otpDate": "1401/12/03 00:27:06",
+  "name": "behroz",
+  "username": "behroz"
+}
+
+wallet=> 
+{
+  "_id": {
+    "$oid": "63f3dc7f5ea39ed82438d37e"
+  },
+  "userId": {
+    "$oid": "63f3dc7e5ea39ed82438d37d"
+  },
+  "amount": 50012000,
+  "walletCode": "100000",
+  "walletType": "MASTER",
+  "createdAt": {
+    "$date": {
+      "$numberLong": "1676926079030"
+    }
+  },
+  "updatedAt": {
+    "$date": {
+      "$numberLong": "1676969135084"
+    }
+  },
+  "date": "1401/12/02 00:17:58"
+}
