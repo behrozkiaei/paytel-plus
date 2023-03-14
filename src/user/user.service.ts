@@ -1,4 +1,4 @@
-import { BankAccount, CheckPassDto, UpdateUser } from './dto/edit-user.dto';
+import { BankAccount, CheckPassDto, contacts, UpdateUser } from './dto/edit-user.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
@@ -56,7 +56,7 @@ export class UserService {
     }
     async getUserInfoByWalletCode(code){
       try{
-
+        console.log(code);
         const userWallet =await this.prisma.wallet.findFirst({
           where: {
             walletCode  :code,
@@ -84,12 +84,17 @@ export class UserService {
             name : true,
             avatar : true,
             username : true,
+            mobile :true,
           }
         })
 
         return{
           status : true,
-          result : userInfo,
+          result : 
+            { name : userInfo.name ?? "",
+              avatar : userInfo.avatar ?? "" , 
+              username :  userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")
+            },
           statusCode : 0,
         }
       }catch(e){
@@ -447,19 +452,22 @@ export class UserService {
   }
 
 
-  async findMutualFriends(user ,list): Promise<INewResponseAPI<any>>{
+  async findMutualFriends(user ,list:contacts[]): Promise<INewResponseAPI<any>>{
     try{
       const listOfNormalNumbers =[]
       for await (const item of list){
-        if(phoneNumberValidator(item)){
-          const mobile = phoneNumberNormalizer(item , '0');
-          listOfNormalNumbers.push(mobile);
+        if(phoneNumberValidator(item.phone)){
+          const mobile = phoneNumberNormalizer(item.phone , '0');
+          listOfNormalNumbers.push({
+            phone: item.phone,
+            name : item.name,
+          });
         }
       }
-      const users = await    this.prisma.user.findMany({
+      const mutuals = await    this.prisma.user.findMany({
         where : {
           mobile : {
-            in : listOfNormalNumbers
+            in : listOfNormalNumbers.map(item => item.phone)
           }
         },
         select : {
@@ -470,11 +478,22 @@ export class UserService {
           },
           avatar: true,
           name : true,
+          mobile:true,
         },
       })
+      console.log(mutuals)
+
+    const mutualUsers = mutuals.map(mutual=>{
+      const findIn = listOfNormalNumbers.find(item =>item.phone == mutual.mobile)
+      console.log(findIn);
+      if(findIn){
+        mutual.name = findIn.name;
+        return mutual;
+      } 
+    })
     return {
       status : true, 
-      result :users
+      result :mutualUsers
     }
   }catch(e){
     console.log(e)

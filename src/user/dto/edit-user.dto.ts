@@ -98,3 +98,16 @@ export class ListOfNumbers {
   @ApiProperty()
   listOfNumbers :string;
 }
+
+export class contacts {
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty()
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty()
+  phone: string;
+}

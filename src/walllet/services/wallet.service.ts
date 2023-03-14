@@ -437,11 +437,11 @@ export class WalletService {
  }
 
  async registerInLastPaidUsersDb(fromUserId , toUserId):Promise<void>{
-    const isFirstTime  = await this.prisma.lastPaidFriends.findFirst({
+    const isFirstTime  = await this.prisma.lastPaidFriends.findMany({
       where :{
         AND : [
-          {fromUser : fromUserId},
-          {destUser : toUserId}
+          {fromUserId : fromUserId},
+          {destUserId : toUserId}
         ]
       }
     })

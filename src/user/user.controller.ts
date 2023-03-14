@@ -1,4 +1,4 @@
-import { BankAccount, CheckPassDto, ListOfNumbers, UpdateAvatarDto, UpdateUser } from './dto/edit-user.dto';
+import { BankAccount, CheckPassDto, contacts, ListOfNumbers, UpdateAvatarDto, UpdateUser } from './dto/edit-user.dto';
 /* eslint-disable @typescript-eslint/no-var-requires */
 import {
   Body,
@@ -119,11 +119,11 @@ export class UserController {
 
   // http://localhost:3000/my-controller?list=string1,string2,string3
 
-  @Get('mutual-friends')
+  @Post('mutual-friends')
   @Roles(Role.ADMIN,Role.LEVEL1,Role.LEVEL2)
   mutualFriends(
-    @User() user: string,
-    @Query('list') list: string[],
+    @User() user,
+    @Body()  list: contacts[],
   )
   : Promise<INewResponseAPI<any>> {  
     return this.userService.findMutualFriends(user, list);
