@@ -447,19 +447,19 @@ export class WalletService {
     })
 
 
-    if(isFirstTime){
-      return;
-    }
     if(!isFirstTime){
+      //return;
+    }
+    if(isFirstTime){
       await this.prisma.lastPaidFriends.create({
         data :{
-          fromUser : fromUserId,
-          destUser:toUserId,
+          fromUserId : fromUserId,
+          destUserId:toUserId,
         }
       })
-      return;
+     // return;
     }
-    return; 
+   // return; 
  }
    
 }

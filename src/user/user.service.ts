@@ -111,17 +111,13 @@ export class UserService {
             },
             include :{
               Wallet:true,
-              order : {
-                orderBy  : {
-                  createdAt : "desc",
-                },
-                take: 10,
-              }, 
-              destUsers : {
+              fromUsers :
+               {
                 include :{
                   destUser :{
                     select:{
                       name:true,
+                      avatar:true,
                       Wallet :{
                         select : {
                           walletCode:true,
