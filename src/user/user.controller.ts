@@ -1,4 +1,4 @@
-import { BankAccount, CheckPassDto, contacts, ListOfNumbers, UpdateAvatarDto, UpdateUser } from './dto/edit-user.dto';
+import { BankAccount, CheckPassDto, contacts, ListOfNumbers, StorageObjectDto, UpdateAvatarDto, UpdateUser } from './dto/edit-user.dto';
 /* eslint-disable @typescript-eslint/no-var-requires */
 import {
   Body,
@@ -18,7 +18,7 @@ import { Role } from './../utils/enums';
 import { NantionalCardImage, UpdateShenasnameImage } from './dto/edit-user.dto';
 
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { INewResponseAPI } from 'src/utils/interfaces/response-type';
@@ -64,6 +64,7 @@ export class UserController {
     @User() user: any,
     @Body() dto: UpdateUser,
   ): Promise<INewResponseAPI<any>> {
+    console.log(dto);
     return this.userService.updateUser(user, dto);
   }
 
@@ -125,36 +126,41 @@ export class UserController {
     @User() user,
     @Body()  list: contacts[],
   )
-  : Promise<INewResponseAPI<any>> {  
+  : Promise<INewResponseAPI<any>> { 
+    
+    console.log("requested");
     return this.userService.findMutualFriends(user, list);
   }
  
 
-  // @Post('upload')
-  // @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  // @UseInterceptors(
-  //   FileInterceptor('file', {
-  //     storage: diskStorage({
-  //       destination: './public/upload',
-  //       filename: (req, file, callback) => {
-  //         const ext = extname(file.originalname);
-  //         const newFileName = moment().format('jYYYY-jMM-jDD-HH-mm-ss') + ext;
-  //         callback(null, newFileName);
-  //       },
-  //     }),
-  //   }),
-  // )
-  // uploadFile(
-  //   @User() user: any,
-  //   @UploadedFile(
-  //     new ParseFilePipe({
-  //       validators: [new MaxFileSizeValidator({ maxSize: 1000000 })],
-  //     }),
-  //   )
-  //   file: Express.Multer.File,
-  // ) {
-  //   console.log(file);
-  //   return this.userService.uploadAvatar(user, file);
-  // }
+  @Post('upload-selfie-video')
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './public/upload',
+        filename: (req, file, callback) => {
+          console.log(file.originalname)
+          const ext = extname(file.originalname);
+          const newFileName = moment().format('jYYYY-jMM-jDD-HH-mm-ss-SSS') + ext;
+          callback(null, newFileName);
+        },
+      }),
+    }),
+  )
+  uploadFile(
+    @User() user: any,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 200000000 })],
+      }),
+      )
+    file: Express.Multer.File,
+    @Body() dto: StorageObjectDto,
+  ) {
+    console.log(file);
+    return this.userService.uploadSelfieVideo(user, file);
+  }
 }
 

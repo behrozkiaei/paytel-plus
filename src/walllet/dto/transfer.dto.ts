@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class TransferDto {
   @IsNotEmpty()
@@ -29,4 +29,10 @@ export class UserTransferDto {
   @IsString()
   @ApiProperty()
   walletCode: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty()
+  fromWallet : boolean
+
 }

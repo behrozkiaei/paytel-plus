@@ -24,7 +24,7 @@ export class RolesGuard implements CanActivate {
       const dif = moment.duration(duration, 'minutes').asMinutes();
       console.log(dif)
       if (dif > +this.config.get("USER_LOGIN_TIME_FOR_TRANSACTION")) {
-        return false;
+        // return false;
       }
     }
     if (!roles) {

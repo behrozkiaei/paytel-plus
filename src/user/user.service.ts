@@ -174,7 +174,41 @@ export class UserService {
             
       }
     }
-    
+    async uploadSelfieVideo(user,file){
+      try{
+
+          const userInfo = await this.prisma.user.findUnique({
+              where:{
+                id : user.id
+              }
+          })
+
+          if(!userInfo){
+            return {
+              status : false,
+              message:"User not found"
+            }
+          }
+          await this.prisma.user.update({
+            where:{
+              id :userInfo.id
+            },
+            data :{
+              selfiVideo : `public/upload/${file.filename}`,
+            }
+          })
+          return {
+            status :true,
+            result:null,
+          }
+    }catch(error){
+
+          return {
+            status:false
+          }
+          
+    }
+  }
 
     // updateIndentityImage
     async updateIdentityImage(user:any,url :string){
@@ -346,7 +380,7 @@ export class UserService {
               result:null,
             }
       }catch(error){
-
+        console.log(error);
             return {
               status:false
             }
@@ -452,15 +486,18 @@ export class UserService {
     try{
       const listOfNormalNumbers =[]
       for await (const item of list){
-        if(phoneNumberValidator(item.phone)){
-          const mobile = phoneNumberNormalizer(item.phone , '0');
+        if(phoneNumberValidator(item.phones)){
+          let temp = item.phones.replace(" ","")
+           temp = temp.replace("+98", "0");
+           const mobile = phoneNumberNormalizer(temp , '0');
           listOfNormalNumbers.push({
-            phone: item.phone,
+            phone: mobile,
             name : item.name,
           });
         }
       }
-      const mutuals = await    this.prisma.user.findMany({
+      console.log(listOfNormalNumbers);
+      const mutuals = await this.prisma.user.findMany({
         where : {
           mobile : {
             in : listOfNormalNumbers.map(item => item.phone)
@@ -477,11 +514,11 @@ export class UserService {
           mobile:true,
         },
       })
-      console.log(mutuals)
+      // console.log(mutuals)
 
     const mutualUsers = mutuals.map(mutual=>{
       const findIn = listOfNormalNumbers.find(item =>item.phone == mutual.mobile)
-      console.log(findIn);
+      // console.log(findIn);
       if(findIn){
         mutual.name = findIn.name;
         return mutual;

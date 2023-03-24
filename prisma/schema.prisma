@@ -46,6 +46,8 @@ model User{
   cartMelli String?
   shenasname String?
   fcmToken String?
+  selfiVideo String?
+  verifyStatus String? 
   paymentRequest UserPaymentRequest[]
   fromUsers LastPaidFriends[]  @relation("fromUserId")
   destUsers LastPaidFriends[]  @relation("destUserId")
@@ -207,7 +209,11 @@ enum CashbackState {
   DONE   // cash back is done
   REJECTED // cash back is not done
 }
-
+enum Status {
+  PENDING // is pernding to cash back
+  DONE   // cash back is done
+  REJECTED // cash back is not done
+}
 enum Role {
   ADMIN
   MASTER

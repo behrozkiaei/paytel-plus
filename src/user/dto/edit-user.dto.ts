@@ -109,5 +109,12 @@ export class contacts {
   @IsString()
   @IsOptional()
   @ApiProperty()
-  phone: string;
+  phones: string;
+}
+
+export class StorageObjectDto {
+  
+
+  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  file: Express.Multer.File
 }

@@ -5,461 +5,516 @@ import { UserTransferDto } from './../dto/transfer.dto';
 import { UpdateWalletDto } from '../dto/update-wallet.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import {  Role } from '@prisma/client';
+import { keyValue, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionsService } from './transactions.service';
 import { TransferDto } from '../dto/transfer.dto';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const  moment = require('moment-jalaali')
+const moment = require('moment-jalaali');
 import axios from 'axios';
 import { OrderType } from 'src/utils/enums';
 @Injectable()
-export class WalletService { 
-    constructor(
-      private prisma : PrismaService ){}
+export class WalletService {
+  constructor(private prisma: PrismaService) {}
 
+  async getWalletById(id: string) {
+    return this.prisma.wallet.findUnique({
+      where: {
+        id,
+      },
+    });
+  }
+  async getWalletByType(walletType: string) {
+    return this.prisma.wallet.findFirst({
+      where: {
+        walletType,
+      },
+    });
+  }
+  async getWalletByUserId(id: string) {
+    return this.prisma.wallet.findFirst({
+      where: {
+        userId: id,
+      },
+      include: {
+        User: true,
+      },
+    });
+  }
 
+  async getAllWallet() {
+    return await this.prisma.wallet.findMany();
+  }
 
-    async getWalletById(id: string) {
-        return this.prisma.wallet.findUnique({
-          where: {
-            id,
-          },
-        });
-      }
-      async getWalletByType(walletType: string) {
-        return this.prisma.wallet.findFirst({
-          where: {
-            walletType,
-          },
-        });
-      }
-      async getWalletByUserId(id: string) {
+  async updateWallet(id: string, dto: UpdateWalletDto) {
+    // get the bookmark by id
+    const wallet = await this.prisma.wallet.findUnique({
+      where: {
+        id: id,
+      },
+    });
 
-        return this.prisma.wallet.findFirst({
-          where: {
-            userId : id
-          },
-          include:{
-            User:true,
-          },
-        });
-      }
+    // check if user owns the bookmark
+    if (!wallet || wallet.id !== id)
+      throw new ForbiddenException('Access to resources denied');
 
-      
-      async getAllWallet() {
-        return await this.prisma.wallet.findMany();
-      }
-  
-      async updateWallet(
-        id: string,
-        dto: UpdateWalletDto,
-      ) {
-        // get the bookmark by id
-        const wallet =
-          await this.prisma.wallet.findUnique({
-            where: {
-              id: id,
-            },
-          });
-  
-        // check if user owns the bookmark
-        if (!wallet || wallet.id !== id)
-          throw new ForbiddenException(
-            'Access to resources denied',
-          );
-  
-        return this.prisma.wallet.update({
-          where: {
-            id:id,
-          },
-          data: {
-            ...dto,
-          },
-        });
-      }
+    return this.prisma.wallet.update({
+      where: {
+        id: id,
+      },
+      data: {
+        ...dto,
+      },
+    });
+  }
 
+  async deleteWallet(id: string) {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: {
+        id: id,
+      },
+    });
 
-      async deleteWallet(
-        id: string,
-      ) {
-        const wallet =
-          await this.prisma.wallet.findUnique({
-            where: {
-              id: id,
-            },
-          });
-  
-        // check if user owns the bookmark
-        if (!wallet || wallet.id !== id)
-          throw new ForbiddenException(
-            'Access to resources denied',
-          );
-  
-        await this.prisma.wallet.delete({
-          where: {
-            id: id,
-          },
-        });
-      }
+    // check if user owns the bookmark
+    if (!wallet || wallet.id !== id)
+      throw new ForbiddenException('Access to resources denied');
 
-      async customerPaymentRequest(user,  amount , dto :PaymentRequestDto) {
-        try {
-          console.log(dto)
-            const order = await this.prisma.order.create({
-              data:{
-                title : "افزایش اعتبار",
-                amount : +amount,
-                type : OrderType.increaseWallet,
-                userId : user.id,
-                avatar : user.avatar,
-                payload : JSON.stringify(dto),
-                date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-              }
-            })
-            const  res = await this.createTransaction(user.id , amount, order.id);
-            if(res.status && res.result){
-              return {
-                result:{
-                  RedirectURL : res.result.RedirectURL,
-                }  ,
-                status : true,
-                statusCode : 0
-              }
-            }
-          }catch (e) {
-            return {
-                  result: null,
-                  statusCode : 1 ,
-                  status:false,
-                  message:"Failed to insert data",
-              }
-          }
-     };
+    await this.prisma.wallet.delete({
+      where: {
+        id: id,
+      },
+    });
+  }
 
-  async transferMoneyWallet2Wallet(sourceWalletId,destWalletId,amount,desc=""){
-   
- 
-    const  date = moment().format('jYYYY/jMM/jDD HH:mm:ss')
-     try{
-       
-       const sourceWallet =await this.prisma.wallet.findUnique({
-         where :{id : sourceWalletId}
-        })
-
-      const destWallet = await this.prisma.wallet.findUnique({
-         where :{id : destWalletId}
-        })
-      if(!destWallet){
-          throw new Error(
-          'Dest wallet not founded',
-      );}
-      if(!sourceWallet){
-        throw new Error(
-          'source Wallet  not founded',
-          );
-        }
-        // console.log(sourceWallet)
-        if(+amount > +sourceWallet.amount){
-          throw new ForbiddenException(
-          'Amount not enough',
-        );
-      }
-      await this.prisma.wallet.update({
-          where :{
-            id : sourceWalletId
-          },
-          data:{
-            amount : (+sourceWallet.amount) - (+amount)
-          }
-        })
-      await this.prisma.wallet.update({
-        where :{
-          id : destWalletId
+  async customerPaymentRequest(user, amount, dto: PaymentRequestDto) {
+    try {
+      console.log(dto);
+      const order = await this.prisma.order.create({
+        data: {
+          title: 'افزایش اعتبار',
+          amount: +amount,
+          type: OrderType.increaseWallet,
+          userId: user.id,
+          avatar: user.avatar,
+          payload: JSON.stringify(dto),
+          date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
         },
-        data:{
-          amount :(+destWallet.amount) + (+amount)
-        }
-      })
-
-      await this.prisma.walletTransfer.create({
-        data : {
-          destWalletId : destWalletId,
-          sourceWalletId:sourceWalletId,
-          amount : +amount,
-          date : date,
-          description :desc
-        }
-      })
-      return {
-        status :true,
-        result :null
+      });
+      const res = await this.createTransaction(user.id, amount, order.id);
+      if (res.status && res.result) {
+        return {
+          result: {
+            RedirectURL: res.result.RedirectURL,
+          },
+          status: true,
+          statusCode: 0,
+        };
       }
-    }catch(err){
-      console.log(err)
-      return  {
-        status :false,
-        result :null
+    } catch (e) {
+      return {
+        result: null,
+        statusCode: 1,
+        status: false,
+        message: 'Failed to insert data',
       };
     }
   }
-  async transferByAdmin(dto :TransferDto){
-    const masterWallet =await this.prisma.wallet.findFirst({
+
+  async transferMoneyWallet2Wallet(
+    sourceWalletId,
+    destWalletId,
+    amount,
+    desc = '',
+  ) {
+    const date = moment().format('jYYYY/jMM/jDD HH:mm:ss');
+    try {
+      const sourceWallet = await this.prisma.wallet.findUnique({
+        where: { id: sourceWalletId },
+      });
+
+      const destWallet = await this.prisma.wallet.findUnique({
+        where: { id: destWalletId },
+      });
+      if (!destWallet) {
+        throw new Error('Dest wallet not founded');
+      }
+      if (!sourceWallet) {
+        throw new Error('source Wallet  not founded');
+      }
+      // console.log(sourceWallet)
+      if (+amount > +sourceWallet.amount) {
+        throw new ForbiddenException('Amount not enough');
+      }
+      await this.prisma.wallet.update({
+        where: {
+          id: sourceWalletId,
+        },
+        data: {
+          amount: +sourceWallet.amount - +amount,
+        },
+      });
+      await this.prisma.wallet.update({
+        where: {
+          id: destWalletId,
+        },
+        data: {
+          amount: +destWallet.amount + +amount,
+        },
+      });
+
+      await this.prisma.walletTransfer.create({
+        data: {
+          destWalletId: destWalletId,
+          sourceWalletId: sourceWalletId,
+          amount: +amount,
+          date: date,
+          description: desc,
+        },
+      });
+      return {
+        status: true,
+        result: null,
+      };
+    } catch (err) {
+      console.log(err);
+      return {
+        status: false,
+        result: null,
+      };
+    }
+  }
+  async transferByAdmin(dto: TransferDto) {
+    const masterWallet = await this.prisma.wallet.findFirst({
       where: {
-        walletType : "MASTER"
+        walletType: 'MASTER',
       },
-      select : {
-        id :true,
-        amount :true,
-        User : {
-          select :{
-            id :true
-          }
-        }
-      }
-    })
-    if(!masterWallet){
-      throw new ForbiddenException("Master wallet not founded")
-    }
-    
-    const userWallet =await  this.prisma.user.findUnique({
-      where : {
-        id : dto.userId
+      select: {
+        id: true,
+        amount: true,
+        User: {
+          select: {
+            id: true,
+          },
+        },
       },
-      include :{
-        Wallet:true
-      }
-    })
-    if(!userWallet ||!userWallet.Wallet ){
-      throw new ForbiddenException("Master wallet not founded")
+    });
+    if (!masterWallet) {
+      throw new ForbiddenException('Master wallet not founded');
     }
-    if(dto.mode == "increase"){
-          try{
-            return this.transferMoneyWallet2Wallet(masterWallet?.id,userWallet.Wallet.id,dto.amount,"افزایش اعتبار توسط ادمین")
-          }catch(e){
-            console.log(e)
-            return {
-              status : false,
-              message: "something wrong"
-            }
-          }
+
+    const userWallet = await this.prisma.user.findUnique({
+      where: {
+        id: dto.userId,
+      },
+      include: {
+        Wallet: true,
+      },
+    });
+    if (!userWallet || !userWallet.Wallet) {
+      throw new ForbiddenException('Master wallet not founded');
+    }
+    if (dto.mode == 'increase') {
+      try {
+        return this.transferMoneyWallet2Wallet(
+          masterWallet?.id,
+          userWallet.Wallet.id,
+          dto.amount,
+          'افزایش اعتبار توسط ادمین',
+        );
+      } catch (e) {
+        console.log(e);
+        return {
+          status: false,
+          message: 'something wrong',
+        };
       }
-    if(dto.mode == "decrease"){
-          try{
-            return this.transferMoneyWallet2Wallet(userWallet.Wallet.id,masterWallet.id,dto.amount,"کاهش اعتبار توسط ادمین")  
-          }catch(e){
-            console.log(e)
-            return {
-              status : false,
-              message: "something wrong"
-            }
-          }
-     }
+    }
+    if (dto.mode == 'decrease') {
+      try {
+        return this.transferMoneyWallet2Wallet(
+          userWallet.Wallet.id,
+          masterWallet.id,
+          dto.amount,
+          'کاهش اعتبار توسط ادمین',
+        );
+      } catch (e) {
+        console.log(e);
+        return {
+          status: false,
+          message: 'something wrong',
+        };
+      }
+    }
   }
 
-
-  async transferByUser(user:any , dto :UserTransferDto){
-    
-    const toWallet =await this.prisma.wallet.findFirst({
+  async transferByUser(user: any, dto: UserTransferDto) {
+    const toWallet = await this.prisma.wallet.findFirst({
       where: {
-         walletCode  : dto.walletCode,
-       },
-       include :{
-         User:true
-       }
-    })
-    if(!toWallet){
-      throw new ForbiddenException("Target User  wallet not founded")
+        walletCode: dto.walletCode,
+      },
+      include: {
+        User: true,
+      },
+    });
+    if (!toWallet) {
+      throw new ForbiddenException('Target User  wallet not founded');
     }
-    await this.registerInLastPaidUsersDb(user.id,toWallet.User.id);
+    await this.registerInLastPaidUsersDb(user.id, toWallet.User.id);
     const resnum = Date.now().toString();
     const order = await this.prisma.order.create({
-      data:{
-        title : "انتقال اعتبار",
-        amount : +dto.amount,
-        type : OrderType.walletToWallet,
-        userId:user.id,
-        subTitle : `${toWallet.User.username}انتقال به `,
+      data: {
+        title: ' انتقال اعتبار ار کارت بانکی',
+        amount: +dto.amount,
+        type: dto.fromWallet
+          ? OrderType.walletToWallet
+          : OrderType.creditToOtherWallet,
+        userId: user.id,
+        subTitle: `${toWallet.User.name}انتقال به `,
         date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-        payload : JSON.stringify(dto),
-        desc :{
-          create: [  // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
-          {
-            key: "کد رهگیری",
-            value : resnum
-          }
-        ] 
-      }
-     }
-    })
-    const fromUser = await  this.prisma.user.findUnique({
-      where : {
-        id : user.id
+        payload: JSON.stringify(dto),
+        desc: {
+          create: [
+            // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
+            {
+              key: 'کد رهگیری',
+              value: resnum,
+            },
+          ],
+        },
       },
-      include :{
-        Wallet:true
+    });
+
+    try {
+      if (dto.fromWallet) {
+        this.doingTransferWhenAmountIsEnough(order.id);
+      } else {
+        const res = await this.createTransaction(
+          user.id,
+          +dto.amount,
+          order.id,
+        );
+        if (res.status && res.result) {
+          return {
+            result: {
+              RedirectURL: res.result.RedirectURL,
+            },
+            status: true,
+            statusCode: 0,
+          };
+        }
       }
-    })
-    if(!fromUser ||!fromUser.Wallet ){
-      throw new ForbiddenException("From user wallet not founded")
+    } catch (e) {
+      console.log(e);
+      return {
+        status: false,
+        message: e.message || 'something wrong',
+      };
     }
-    try{
-      const response = await this.transferMoneyWallet2Wallet(fromUser.Wallet.id,toWallet.id,dto.amount,"انتقال اعتبار ")  
-      if(response.status){
+  }
+
+  async doingTransferWhenAmountIsEnough(orderId) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: {
+          id: orderId,
+        },
+      });
+
+      const dto = JSON.parse(order.payload) as UserTransferDto;
+      const toWallet = await this.prisma.wallet.findFirst({
+        where: {
+          walletCode: dto.walletCode,
+        },
+        include: {
+          User: true,
+        },
+      });
+      if (!toWallet) {
+        throw new ForbiddenException('Target User  wallet not founded');
+      }
+
+      const fromUser = await this.prisma.user.findUnique({
+        where: {
+          id: order.userId,
+        },
+        include: {
+          Wallet: true,
+        },
+      });
+      if (!fromUser || !fromUser.Wallet) {
+        throw new ForbiddenException('From user wallet not founded');
+      }
+      if (fromUser.Wallet.amount < +dto.amount) {
+        throw new ForbiddenException('Your amount is not enough');
+      }
+      const response = await this.transferMoneyWallet2Wallet(
+        fromUser.Wallet.id,
+        toWallet.id,
+        dto.amount,
+        'انتقال اعتبار ',
+      );
+      if (response.status) {
         await this.prisma.order.update({
-          where : {
-            id :order.id,
+          where: {
+            id: order.id,
           },
-          data:{
+          data: {
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-            isPaid :true ,
-         }
-        })
+            isPaid: true,
+          },
+        });
         const resnumTo = Date.now().toString();
         const toUserOrder = await this.prisma.order.create({
-          data:{
-            title : "انتقال اعتبار",
-            amount : +dto.amount,
-            type : OrderType.walletToWallet,
-            userId:user.id,
-            isPaid : true,
-            subTitle : `${fromUser.username}انتقال از `,
+          data: {
+            title: 'افزایش اعتبار',
+            amount: +dto.amount,
+            type: OrderType.creditToOtherWallet,
+            userId: toWallet.User.id,
+            isPaid: true,
+            subTitle: `${fromUser.name}انتقال از `,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-            payload : JSON.stringify(dto),
-            desc :{
-              create: [  // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
-              {
-                key: "کد رهگیری",
-                value : resnumTo
-              }
-            ] 
-          }
-         }
-        })
+            payload: JSON.stringify(dto),
+            desc: {
+              create: [
+                // for update user push or update many  updateMany: [{where: { key: "key1" }, // update the record with key="key1" data: { value: "new_value1" } },
+                {
+                  key: 'کد رهگیری',
+                  value: resnumTo,
+                },
+                {
+                  key: 'تاریخ',
+                  value: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+                },
+              ],
+            },
+          },
+        });
+        await this.prisma.order.update({
+          where: {
+            id: order.id,
+          },
+          data: {
+            isPaid: true,
+          },
+        });
         return {
-          status : true,
-        }
-      }else{
-        throw new Error(
-          'response not true',
-      );
+          status: true,
+        };
+      } else {
+        throw new Error('response not true');
       }
-    }catch(e){
-      console.log(e)
+    } catch (e) {
+      console.log(e);
       return {
-        status : false,
-        message: e.message || "something wrong"
-      }
-    }  
-  }
-
-  async createTransaction(customerId , amount,orderId ): Promise<INewResponseAPI<any>>{
-          const resnum = Date.now().toString();
-          // const config = await this.prisma.config.findFirst({})
-          console.log(11)
-          try {
-            console.log(1)
-            const wallet = await this.getWalletByUserId(customerId)
-            //get  payment link 
-            console.log(13)
-            const data = JSON.stringify({
-              "merchant_id": "da506228-c225-431c-91ff-ddc4abe8b995",
-              "amount": +amount,
-              "callback_url": "http://192.168.1.107:3000/transactions/callback",
-              "description": ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
-              "metadata": {"mobile": wallet.User.mobile,},
-              "order_id" : amount
-            });
-            
-            const configuration = {
-              method: 'post',
-              maxBodyLength: Infinity,
-              url: 'https://api.zarinpal.com/pg/v4/payment/request.json',
-              headers: {  
-                'Content-Type': 'application/json',
-                'accept': 'application/json'
-              },
-              data : data
-            }
-            const response = await axios(configuration);
-            console.log(response.data)
-            if(response.data.data.code == 100){
-                const transaction = await this.prisma.transaction.create({
-                  data : {
-                    destWalletId : wallet.id,
-                    amount :+amount,
-                    resnum: resnum,
-                    orderId,
-                    date : moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-                    securePan : response.data.data.authority,
-                  }
-                })
-                return {
-                    result:{
-                      RedirectURL : `https://www.zarinpal.com/pg/StartPay/${response.data.data.authority}`,
-                      Transaction : transaction ,
-                    }  ,
-                    status : true,
-                    statusCode : 0
-                }
-              }else{
-               return  {
-                  status : false,
-                }
-              }
-          }catch (e) {
-            console.log(e);
-            return  {
-              status : false,
-            }
-          }
-  }
-
- async getMasterWallet (){
-  const masterWallet =await this.prisma.wallet.findFirst({
-    where: {
-      walletType : "MASTER"
-    },
-    select : {
-      id :true,
-      amount :true,
-      User : {
-        select :{
-          id :true
-        }
-      }
+        status: false,
+      };
     }
-  })
-  if(!masterWallet){
-    throw new ForbiddenException("Master wallet not founded")
   }
-  return masterWallet
- }
 
- async registerInLastPaidUsersDb(fromUserId , toUserId):Promise<void>{
-    const isFirstTime  = await this.prisma.lastPaidFriends.findMany({
-      where :{
-        AND : [
-          {fromUserId : fromUserId},
-          {destUserId : toUserId}
-        ]
+  async createTransaction(
+    customerId,
+    amount,
+    orderId,
+  ): Promise<INewResponseAPI<any>> {
+    const resnum = Date.now().toString();
+    // const config = await this.prisma.config.findFirst({})
+    console.log(11);
+    try {
+      console.log(1);
+      const wallet = await this.getWalletByUserId(customerId);
+      //get  payment link
+      console.log(13);
+      const data = JSON.stringify({
+        merchant_id: 'da506228-c225-431c-91ff-ddc4abe8b995',
+        amount: +amount,
+        callback_url: 'http://192.168.1.107:3000/transactions/callback',
+        description: ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
+        metadata: { mobile: wallet.User.mobile },
+        order_id: amount,
+      });
+
+      const configuration = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'https://api.zarinpal.com/pg/v4/payment/request.json',
+        headers: {
+          'Content-Type': 'application/json',
+          accept: 'application/json',
+        },
+        data: data,
+      };
+      const response = await axios(configuration);
+      console.log(response.data);
+      if (response.data.data.code == 100) {
+        const transaction = await this.prisma.transaction.create({
+          data: {
+            destWalletId: wallet.id,
+            amount: +amount,
+            resnum: resnum,
+            orderId,
+            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+            securePan: response.data.data.authority,
+          },
+        });
+        return {
+          result: {
+            RedirectURL: `https://www.zarinpal.com/pg/StartPay/${response.data.data.authority}`,
+            Transaction: transaction,
+          },
+          status: true,
+          statusCode: 0,
+        };
+      } else {
+        return {
+          status: false,
+        };
       }
-    })
-
-
-    if(!isFirstTime){
-      //return;
+    } catch (e) {
+      console.log(e);
+      return {
+        status: false,
+      };
     }
-    if(isFirstTime){
+  }
+
+  async getMasterWallet() {
+    const masterWallet = await this.prisma.wallet.findFirst({
+      where: {
+        walletType: 'MASTER',
+      },
+      select: {
+        id: true,
+        amount: true,
+        User: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+    if (!masterWallet) {
+      throw new ForbiddenException('Master wallet not founded');
+    }
+    return masterWallet;
+  }
+
+  async registerInLastPaidUsersDb(fromUserId, toUserId): Promise<void> {
+    const isFirstTime = await this.prisma.lastPaidFriends.findMany({
+      where: {
+        AND: [{ fromUserId: fromUserId }, { destUserId: toUserId }],
+      },
+    });
+
+    console.log(isFirstTime);
+    if (!isFirstTime) {
+    }
+    if (isFirstTime) {
       await this.prisma.lastPaidFriends.create({
-        data :{
-          fromUserId : fromUserId,
-          destUserId:toUserId,
-        }
-      })
-     // return;
+        data: {
+          fromUserId: fromUserId,
+          destUserId: toUserId,
+        },
+      });
     }
-   // return; 
- }
-   
+  }
 }
