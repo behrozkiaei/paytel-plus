@@ -10,7 +10,7 @@ import { AppModule } from './app.module';
 import hbs = require('hbs')
 import * as bodyParser from 'body-parser';
 import * as admin from 'firebase-admin';
-
+require('dotenv').config();
 const serviceAccount = require('../google-services.json');
 
 admin.initializeApp({
@@ -25,7 +25,7 @@ async function bootstrap() {
   .setDescription('Paytel server API s prepared for simplifying development')
   .setVersion('1.0')
   .addTag('PaytelServer')
-  .addServer('http://localhost:3000')
+  .addServer(process.env.SERVER_ADDRESS)
 
   .addBearerAuth(
     { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
