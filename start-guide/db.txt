@@ -1,3 +1,14 @@
+use paytel 
+db.createUser(
+   {
+     user: "paytel-admin",
+     pwd: "5924a1212XYZ",
+     roles: [ "readWrite", "dbAdmin" ]
+   }
+)
+
+paytel-admin@5924a1212XYZ
+
 users ==> 
 {
   "mobile": "09116264382",
@@ -47,3 +58,5 @@ wallet=>
   },
   "date": "1401/12/02 00:17:58"
 }
+
+

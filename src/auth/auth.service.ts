@@ -36,7 +36,8 @@ export class AuthService {
     }
     const mobile = toEn(phoneNumberNormalizer(dto.mobile, '0'));
     try {
-      const password ="1234" || (Math.floor(Math.random() * 9000) + 1000).toString();
+      // const password ="1234" || (Math.floor(Math.random() * 9000) + 1000).toString();
+      const password = (Math.floor(Math.random() * 9000) + 1000).toString();
       let user = await this.findUserByPhone(mobile);
       if (!user) {
         //throw new ForbiddenException('Phone number registered before');
@@ -77,7 +78,7 @@ export class AuthService {
         },
       });
       // wait send message to user
-      // await this.smsService.sendOtp(user.mobile, password);
+      await this.smsService.sendOtp(user.mobile, password);
       // wait send message to user
         
       return { status: true, stasusCode: 0, result: true };

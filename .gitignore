@@ -37,10 +37,10 @@ bower_components
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
-
+public/upload/***
 # Dependency directories
 node_modules/
-upload/***
+
 jspm_packages/
 dist/
 
