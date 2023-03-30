@@ -12,9 +12,21 @@
 #rs.initiate()
 #rs.add("mongo2:27017")
 #rs.add("mongo3:27017")
- 
+
+# rs.initiate({
+#    _id: "rs0",
+#    members: [
+#       { _id: 0, host: "mongo1:27017" },
+#       { _id: 1, host: "mongo2:27017" },
+#       { _id: 2, host: "mongo3:27017" }
+#    ]
+# })
+
+
+#docker exec -t -i mongo1  /bin/bash
 # create db name admin
 # connect to mongodb://127.0.0.1:27017/admin 
+# docker exec -it mongo1 bash
 
  #//linke :
 #  DATABASE_URL ='mongodb://127.0.0.1:27017/admin?directConnection=true&serverSelectionTimeoutMS=2000'
@@ -26,3 +38,21 @@
 # docker run -d --net mongo-net --name mongo2 -p 27018:27017 mongo:latest mongod --replSet rs0
 # docker run -d --net mongo-net --name mongo3 -p 27019:27017 mongo:latest mongod --replSet rs0
 
+
+
+
+#docker run -d --net mongo-net --name mongo1 -e MONGO_INITDB_ROOT_USERNAME=myPaytelAdmin654 -e MONGO_INITDB_ROOT_PASSWORD=5924a1212XYZ  mongo:latest mongod --auth --replSet rs0
+#docker run -d --net mongo-net --name mongo2 mongo:latest mongod --replSet rs0
+#docker run -d --net mongo-net --name mongo3 mongo:latest mongod --replSet rs0
+
+#docker exec -it mongo1 mongosh -u myPaytelAdmin654 -p 5924a1212XYZ --authenticationDatabase admin --eval "rs.initiate({_id: 'rs0', members: [{ _id: 0, host: 'mongo1:27017' }, { _id: 1, host: 'mongo2:27017' }, { _id: 2, host: 'mongo3:27017' }]})"
+#mongo --host rs0/mongo1:27017 -u <username> -p <password> --authenticationDatabase admin 
+
+
+docker run -d --name mongodb2 -e MONGO_INITDB_ROOT_USERNAME=fhgfhghfg -e MONGO_INITDB_ROOT_PASSWORD=2342242de mongo:latest mongod --auth
+
+
+
+
+# kill -15 $(pidof mongod)
+# mongod --config /etc/mongod.conf.orig

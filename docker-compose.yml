@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  mongo01:
+    image: mongo:latest
+    command: mongod --replSet rs0 
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo1:/data/db
+
+  mongo02:
+    image: mongo:latest
+    command: mongod --replSet rs0 
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo2:/data/db
+
+  mongo03:
+    image: mongo:latest
+    command: mongod --replSet rs0 
+    restart: always
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo3:/data/db
+  
+
+volumes:
+  mongo1:
+  mongo2:
+  mongo3:

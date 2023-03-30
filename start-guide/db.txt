@@ -1,16 +1,28 @@
-use paytel 
+use admin
+db.dropUser('paytel-admin')
+
+
+
+use admin
 db.createUser(
-   {
-     user: "paytel-admin",
-     pwd: "5924a1212XYZ",
-     roles: [ "readWrite", "dbAdmin" ]
-   }
+  {
+    user: "myPaytelAdmin654",
+    pwd:"5924a1212XYZ", // or cleartext password
+    roles: [
+      { role: "userAdminAnyDatabase", db: "admin" },
+      { role: "readWriteAnyDatabase", db: "admin" }
+    ]
+  }
 )
 
-paytel-admin@5924a1212XYZ
+mongo --port 27017 -u "paytel-admin" -p "5924a1212XYZ" --authenticationDatabase "admin"
+mongod --port 27017 -u "paytel-admin" -p "5924a1212XYZ" --authenticationDatabase "admin"
 
-users ==> 
-{
+paytel-admin:5924a1212XYZ
+const objectId = ObjectId("63f9f796c50600d35beb811f");
+
+db.users.insertOne({
+  "_id": objectId,
   "mobile": "09116264382",
   "role": "LEVEL1",
   "active": true,
@@ -23,27 +35,20 @@ users ==>
   },
   "updatedAt": {
     "$date": {
-      "$numberLong": "1677013026431"
+      "$numberLong": "1677505523388"
     }
   },
   "verified_bank": false,
   "date": "1401/12/02 00:17:58",
-  "password": "1234",
+  "password": "3835",
   "otpType": "Login",
-  "otpDate": "1401/12/03 00:27:06",
+  "otpDate": "1401/12/08 17:15:23",
   "name": "behroz",
-  "username": "behroz"
-}
-
-wallet=> 
-{
-  "_id": {
-    "$oid": "63f3dc7f5ea39ed82438d37e"
-  },
-  "userId": {
-    "$oid": "63f3dc7e5ea39ed82438d37d"
-  },
-  "amount": 50012000,
+  "username": "",
+})
+db.wallet.insertOne({
+  "userId": objectId,
+  "amount": 50382665,
   "walletCode": "100000",
   "walletType": "MASTER",
   "createdAt": {
@@ -53,10 +58,14 @@ wallet=>
   },
   "updatedAt": {
     "$date": {
-      "$numberLong": "1676969135084"
+      "$numberLong": "1679235982593"
     }
   },
   "date": "1401/12/02 00:17:58"
-}
+})
+
+db.revokeRolesFromUser("test", [{ role: "readWrite", db: "paytel" }])
 
 
+  mongo  'mongodb://paytel-admin:5924a1212XYZ@127.0.0.1:27017/paytel?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+1.8.0'
+mongo --host localhost --port 27017 --authenticationDatabase paytel -u paytel-admin -p 5924a1212XYZ
