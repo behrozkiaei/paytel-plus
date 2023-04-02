@@ -42,7 +42,40 @@ async function bootstrap() {
       prefix: '/public',
     });
   
-    app.use(helmet());
+    // app.use(helmet());
+    // app.use(helmet());
+    app.use(  
+      helmet({
+        contentSecurityPolicy: false,
+        crossOriginEmbedderPolicy: true,
+        crossOriginOpenerPolicy: true,
+        crossOriginResourcePolicy:true,
+        dnsPrefetchControl:true,
+        frameguard:true,
+        hsts:true,
+        ieNoOpen:true,
+        noSniff:true,
+        referrerPolicy:true,
+        xssFilter:true,
+      })
+    );
+    console.log("start server")
+    // app.use(helmet.contentSecurityPolicy());
+    // app.use(helmet.crossOriginEmbedderPolicy());
+    // app.use(helmet.crossOriginOpenerPolicy());
+    // app.use(helmet.crossOriginResourcePolicy());
+    // app.use(helmet.dnsPrefetchControl());
+    // app.use(helmet.frameguard());
+    // app.use(helmet.hidePoweredBy());
+    // app.use(helmet.hsts());
+    // app.use(helmet.ieNoOpen());
+    // app.use(helmet.noSniff());
+    // app.use(helmet.originAgentCluster());
+    // app.use(helmet.permittedCrossDomainPolicies());
+    // app.use(helmet.referrerPolicy());
+    // app.use(helmet.xssFilter());
+
+
     app.use(cookieParser());
     app.use(
       session({
@@ -55,7 +88,7 @@ async function bootstrap() {
     app.use(bodyParser.json({ limit: '10mb' }));
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-    // app.use(csurf());
+    // // app.use(csurf());
     app.setBaseViewsDir(join(__dirname, '..', 'views'));
     app.setViewEngine('hbs');
     await app.listen(3000);
