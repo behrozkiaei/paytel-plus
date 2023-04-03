@@ -6,10 +6,11 @@ require('dotenv').config()// remove this after you've confirmed it is working
 export class PrismaService extends PrismaClient {
   constructor() {
     // console.log(process.env.DATABASE_URL)
+    const  config = new ConfigService();
     super({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL,
+          url: config.get("DATABASE_URL"),
         },
       },
     });
