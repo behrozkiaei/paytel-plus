@@ -291,6 +291,7 @@ export class TransactionsService {
     } else if (query.Status == 'OK') {
       try {
         console.log(1);
+        console.log(query.Authority);
         const transaction = await this.prisma.transaction.findFirst({
           where: {
             securePan: query.Authority,

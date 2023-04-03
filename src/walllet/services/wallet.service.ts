@@ -13,9 +13,11 @@ import { TransferDto } from '../dto/transfer.dto';
 const moment = require('moment-jalaali');
 import axios from 'axios';
 import { OrderType } from 'src/utils/enums';
+import { config } from 'dotenv';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class WalletService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService,private config : ConfigService) {}
 
   async getWalletById(id: string) {
     return this.prisma.wallet.findUnique({
@@ -248,8 +250,11 @@ export class WalletService {
   }
 
   async transferByUser(user: any, dto: UserTransferDto) {
-    const toWallet = await this.prisma.wallet.findFirst({
-      where: {
+    console.log(dto); 
+    try{
+
+      const toWallet = await this.prisma.wallet.findFirst({
+        where: {
         walletCode: dto.walletCode,
       },
       include: {
@@ -283,10 +288,8 @@ export class WalletService {
         },
       },
     });
-
-    try {
       if (dto.fromWallet) {
-        this.doingTransferWhenAmountIsEnough(order.id);
+       return this.doingTransferWhenAmountIsEnough(order.id);
       } else {
         const res = await this.createTransaction(
           user.id,
@@ -353,6 +356,7 @@ export class WalletService {
         dto.amount,
         'انتقال اعتبار ',
       );
+      console.log(response)
       if (response.status) {
         await this.prisma.order.update({
           where: {
@@ -371,7 +375,7 @@ export class WalletService {
             type: OrderType.creditToOtherWallet,
             userId: toWallet.User.id,
             isPaid: true,
-            subTitle: `${fromUser.name}انتقال از `,
+            subTitle: ` ${fromUser.name } انتقال به `,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
             payload: JSON.stringify(dto),
             desc: {
@@ -397,6 +401,12 @@ export class WalletService {
             isPaid: true,
           },
         });
+        console.log({
+          status: true,
+          result :{
+            RedirectURL :null
+          },
+        })
         return {
           status: true,
         };
@@ -425,12 +435,12 @@ export class WalletService {
       //get  payment link
       console.log(13);
       const data = JSON.stringify({
-        merchant_id: 'da506228-c225-431c-91ff-ddc4abe8b995',
+        merchant_id: this.config.get('MERCHANT_ID_ZARRINPAL'),
         amount: +amount,
-        callback_url: 'http://192.168.1.107:3000/transactions/callback',
+        callback_url: `${this.config.get('SERVER_ADDRESS')}/transactions/callback`,
         description: ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
         metadata: { mobile: wallet.User.mobile },
-        order_id: amount,
+        order_id: orderId,
       });
 
       const configuration = {
@@ -456,6 +466,8 @@ export class WalletService {
             securePan: response.data.data.authority,
           },
         });
+        console.log(transaction)
+        console.log(666)
         return {
           result: {
             RedirectURL: `https://www.zarinpal.com/pg/StartPay/${response.data.data.authority}`,
@@ -465,6 +477,7 @@ export class WalletService {
           statusCode: 0,
         };
       } else {
+        console.log(3)
         return {
           status: false,
         };
@@ -506,9 +519,10 @@ export class WalletService {
     });
 
     console.log(isFirstTime);
-    if (!isFirstTime) {
+    if (isFirstTime?.length>0) {
+      return;
     }
-    if (isFirstTime) {
+    if (isFirstTime?.length==0) {
       await this.prisma.lastPaidFriends.create({
         data: {
           fromUserId: fromUserId,
