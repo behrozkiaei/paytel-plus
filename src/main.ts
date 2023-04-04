@@ -11,6 +11,7 @@ import hbs = require('hbs')
 import * as bodyParser from 'body-parser';
 import * as admin from 'firebase-admin';
 require('dotenv').config();
+
 const serviceAccount = require('../google-services.json');
 
 admin.initializeApp({
@@ -37,7 +38,7 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, document);
     
     
-    app.useStaticAssets(join(__dirname, '..', 'public'), {
+    app.useStaticAssets(join(__dirname, process.env.ENVIRONMENT == 'prod' ? '.' :'..', 'public'), {
       index: false,
       prefix: '/public',
     });
@@ -60,20 +61,7 @@ async function bootstrap() {
       })
     );
     console.log("start server")
-    // app.use(helmet.contentSecurityPolicy());
-    // app.use(helmet.crossOriginEmbedderPolicy());
-    // app.use(helmet.crossOriginOpenerPolicy());
-    // app.use(helmet.crossOriginResourcePolicy());
-    // app.use(helmet.dnsPrefetchControl());
-    // app.use(helmet.frameguard());
-    // app.use(helmet.hidePoweredBy());
-    // app.use(helmet.hsts());
-    // app.use(helmet.ieNoOpen());
-    // app.use(helmet.noSniff());
-    // app.use(helmet.originAgentCluster());
-    // app.use(helmet.permittedCrossDomainPolicies());
-    // app.use(helmet.referrerPolicy());
-    // app.use(helmet.xssFilter());
+
 
 
     app.use(cookieParser());
@@ -89,7 +77,7 @@ async function bootstrap() {
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
     // // app.use(csurf());
-    app.setBaseViewsDir(join(__dirname, '..', 'views'));
+    app.setBaseViewsDir(join(__dirname, process.env.ENVIRONMENT == 'prod' ? '.' :'..', 'views'));
     app.setViewEngine('hbs');
     await app.listen(3000);
   }
