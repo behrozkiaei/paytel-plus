@@ -42,9 +42,6 @@ async function bootstrap() {
       index: false,
       prefix: '/public',
     });
-  
-    // app.use(helmet());
-    // app.use(helmet());
     app.use(  
       helmet({
         contentSecurityPolicy: false,

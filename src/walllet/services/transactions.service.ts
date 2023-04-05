@@ -180,6 +180,7 @@ export class TransactionsService {
       const order = await this.prisma.order.findMany({
         where: {
           isPaid: true,
+          userId:user.id
         },
         skip: +from,
         take: +take,

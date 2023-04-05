@@ -268,13 +268,13 @@ export class WalletService {
     const resnum = Date.now().toString();
     const order = await this.prisma.order.create({
       data: {
-        title: ' انتقال اعتبار ار کارت بانکی',
+        title: ' انتقال اعتبار از کارت بانکی',
         amount: +dto.amount,
         type: dto.fromWallet
           ? OrderType.walletToWallet
           : OrderType.creditToOtherWallet,
         userId: user.id,
-        subTitle: `${toWallet.User.name}انتقال به `,
+        subTitle:toWallet.User.name ? `${toWallet.User.name} انتقال به ` : `${toWallet.User.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")} انتقال به `,
         date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
         payload: JSON.stringify(dto),
         desc: {
@@ -375,7 +375,7 @@ export class WalletService {
             type: OrderType.creditToOtherWallet,
             userId: toWallet.User.id,
             isPaid: true,
-            subTitle: ` ${fromUser.name } انتقال به `,
+            subTitle: toWallet.User.name ? `${toWallet.User.name}انتقال به ` : `${toWallet.User.mobile.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")}انتقال به `,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
             payload: JSON.stringify(dto),
             desc: {
