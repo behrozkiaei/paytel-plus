@@ -173,6 +173,10 @@ export class TransactionsService {
   async getAllOrders(user, from = 0, take = 10) {
     try {
       const count = await this.prisma.order.aggregate({
+        where:{
+          isPaid: true,
+          userId:user.id
+        },
         _count: {
           id: true,
         },
