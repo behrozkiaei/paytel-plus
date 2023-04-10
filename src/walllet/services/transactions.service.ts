@@ -419,7 +419,7 @@ export class TransactionsService {
         const transaction = await this.walletService.createTransaction(
           user.id,
           product.amount,
-          order,
+          order.id,
         );
         return { ...transaction };
       }
@@ -443,7 +443,7 @@ export class TransactionsService {
         const transaction = await this.walletService.createTransaction(
           user.id,
           dto.amount,
-          order,
+          order.id,
         );
         return { ...transaction };
       }

@@ -11,5 +11,11 @@ export class AppController {
   getHello(): void {
     return null;
   }
+  
+  @Get("/privacy")
+  @Render('privacy')
+  privacy(): void {
+    return null;
+  }
 
 }

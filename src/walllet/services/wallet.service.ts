@@ -455,13 +455,15 @@ export class WalletService {
       };
       const response = await axios(configuration);
       console.log(response.data);
+      console.log(wallet);
+      console.log(orderId);
       if (response.data.data.code == 100) {
         const transaction = await this.prisma.transaction.create({
           data: {
             destWalletId: wallet.id,
             amount: +amount,
             resnum: resnum,
-            orderId,
+            orderId:orderId,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
             securePan: response.data.data.authority,
           },
