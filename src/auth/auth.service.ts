@@ -62,7 +62,7 @@ export class AuthService {
             userId: user.id,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
             amount: 0,
-            walletCode: (+lastWallet?.walletCode) + 1,
+            walletCode: ((+lastWallet?.walletCode) + 1).toString(),
           },
         });
       }
