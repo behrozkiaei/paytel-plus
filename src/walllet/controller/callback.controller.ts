@@ -1,28 +1,25 @@
-import { WalletService } from './../services/wallet.service';
+import { WalletService } from '../wallet-services/wallet.service';
 /* eslint-disable prettier/prettier */
 import { Controller } from '@nestjs/common';
 import { Body, Get, Post, Query, Render } from '@nestjs/common/decorators';
 import { ApiTags } from '@nestjs/swagger';
-import { TransactionsService } from './../services/transactions.service';
 import { response } from 'express';
+import { TransactionsService } from 'src/walllet/wallet-services/transactions.service';
 
-
-@ApiTags("transactions Callback Rout")
-@Controller("transactions")
+@ApiTags('transactions Callback Rout')
+@Controller('transactions')
 export class CallbackController {
+  constructor(private transactionService: TransactionsService) {}
 
-    constructor(private transactionService : TransactionsService){}
+  @Get('callback')
+  @Render('index')
+  callback(@Query() query: any) {
+    return this.transactionService.handleCallback(query);
+  }
 
-    @Get("callback")
-    @Render('index')
-    callback(@Query() query :any) {
-        return  this.transactionService.handleCallback(query);   
-    }
-
-
-    // @Get("callback-test")
-    // @Render('index')
-    // callbacktest(@Query() query :any) {
-    //     return  this.transactionService.handleCallbackTest();   
-    // }
+  // @Get("callback-test")
+  // @Render('index')
+  // callbacktest(@Query() query :any) {
+  //     return  this.transactionService.handleCallbackTest();
+  // }
 }

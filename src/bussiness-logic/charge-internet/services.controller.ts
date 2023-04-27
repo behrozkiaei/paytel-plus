@@ -1,10 +1,10 @@
 import { ServicesService } from './services.service';
 import { INewResponseAPI } from 'src/utils/interfaces/response-type';
-import { Roles } from '../auth/decorator/role.decorator';
+import { Roles } from '../../auth/decorator/role.decorator';
 import { UseGuards, Get } from '@nestjs/common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from 'src/auth/guard';
-import { RolesGuard } from '../auth/guard/role.guard';
+import { RolesGuard } from '../../auth/guard/role.guard';
 import { Controller, Post } from '@nestjs/common';
 import { Role } from 'src/utils/enums';
 import { User } from 'src/auth/decorator/user.decorator';

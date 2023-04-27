@@ -20,9 +20,9 @@ import { User } from '../../auth/decorator/user.decorator';
 import { JwtGuard } from '../../auth/guard';
 import { RolesGuard } from '../../auth/guard/role.guard';
 import { TransactionDto } from '../dto/transaction.dto';
-import { TransactionsService } from '../services/transactions.service';
 import { Role } from 'src/utils/enums';
 import { CanTransaction } from 'src/auth/decorator/canTransaction';
+import { TransactionsService } from 'src/walllet/wallet-services/transactions.service';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 @ApiTags("Transactions  Api's")

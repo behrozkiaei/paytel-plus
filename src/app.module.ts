@@ -1,43 +1,39 @@
-import { ServicesModule } from './services/services.module';
-import { SmsService } from './utils/sms_handler';
-import { WatchService } from './watch.service';
-import { PrismaModule } from './prisma/prisma.module';
-import { LoggerMiddleware } from './midleware/logger.middleware';
-import { WalletModule } from './walllet/wallet.module';
-import { UserModule } from './user/user.module';
-import { AuthModule } from './auth/auth.module';
-import { MiddlewareConsumer, Module } from '@nestjs/common';
-import { AppController } from './app.controller';
+import { AdminModule } from '@adminjs/nestjs';
+import * as AdminJSPrisma from '@adminjs/prisma';
+import { CacheModule, MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AdminModule } from '@adminjs/nestjs'
 import { MulterModule } from '@nestjs/platform-express';
+import { DMMFClass } from '@prisma/client/runtime';
+import AdminJS from 'adminjs';
+import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { ServicesModule } from './bussiness-logic/charge-internet/services.module';
+import { LoggerMiddleware } from './midleware/logger.middleware';
+import { PrismaModule } from './prisma/prisma.module';
+import { PrismaService } from './prisma/prisma.service';
+import { UserModule } from './user/user.module';
+import { SmsService } from './utils/sms_handler';
+import { WalletModule } from './walllet/wallet.module';
+import { WatchService } from './watch.service';
 import { SocketGateway } from './websocket';
-import { CacheModule } from '@nestjs/common';
-import { PaymentRequestModule } from './payment-request/payment-request.module';
-import { PrismaClient } from '@prisma/client'
-import { DMMFClass } from '@prisma/client/runtime'
-import { PrismaService } from './prisma/prisma.service'
-import AdminJS from 'adminjs'
-import * as AdminJSPrisma from '@adminjs/prisma'
-
+import { PaymentRequestModule } from './bussiness-logic/payment-request/payment-request.module';
 
 const DEFAULT_ADMIN = {
   email: 'admin@example.com',
   password: 'password',
-}
+};
 AdminJS.registerAdapter({
   Resource: AdminJSPrisma.Resource,
   Database: AdminJSPrisma.Database,
-})
-
+});
 
 const authenticate = async (email: string, password: string) => {
   if (email === DEFAULT_ADMIN.email && password === DEFAULT_ADMIN.password) {
-    return Promise.resolve(DEFAULT_ADMIN)
+    return Promise.resolve(DEFAULT_ADMIN);
   }
-  return null
-}
+  return null;
+};
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -59,80 +55,219 @@ const authenticate = async (email: string, password: string) => {
       useFactory: () => {
         // Note: Feel free to contribute to this documentation if you find a Nest-way of
         // injecting PrismaService into AdminJS module
-        const prisma = new PrismaService()
+        const prisma = new PrismaService();
         // `_baseDmmf` contains necessary Model metadata but it is a private method
         // so it isn't included in PrismaClient type
-        const dmmf = ((prisma as any)._baseDmmf as DMMFClass)
+        const dmmf = (prisma as any)._baseDmmf as DMMFClass;
         return {
           adminJsOptions: {
             rootPath: '/admin',
-            resources: [{
-              resource: { model: dmmf.modelMap.User, client: prisma },
-              options: {
-                sort: {
-                  sortBy: 'updatedAt',
-                  direction: 'desc',
+
+            resources: [
+              {
+                resource: { model: dmmf.modelMap.User, client: prisma },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        // console.log(request.method);
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          // console.log(payload);
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
                 },
               },
-            },
-            {
-              resource: { model: dmmf.modelMap.Wallet, client: prisma },
-              options: {
-                sort: {
-                  sortBy: 'updatedAt',
-                  direction: 'desc',
+              {
+                resource: { model: dmmf.modelMap.Wallet, client: prisma },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        console.log(request);
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          console.log(payload);
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
                 },
               },
-            },
-            {
-              resource: { model: dmmf.modelMap.Transaction, client: prisma },
-              options: {
-                sort: {
-                  sortBy: 'updatedAt',
-                  direction: 'desc',
+              {
+                resource: { model: dmmf.modelMap.Transaction, client: prisma },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        console.log(request);
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          console.log(payload);
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
                 },
               },
-            },
-            {
-              resource: { model: dmmf.modelMap.Order, client: prisma },
-              options: {
-                sort: {
-                  sortBy: 'updatedAt',
-                  direction: 'desc',
+              {
+                resource: { model: dmmf.modelMap.Order, client: prisma },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
                 },
               },
-            },
-            {
-              resource: { model: dmmf.modelMap.WalletTransfer, client: prisma },
-              options: {},
-            },
-            {
-              resource: { model: dmmf.modelMap.UserPaymentRequest, client: prisma },
-              options: {},
-            },
-            {
-              resource: { model: dmmf.modelMap.LastPaidFriends, client: prisma },
-              options: {},
-            },
-            {
-              resource: { model: dmmf.modelMap.keyValue, client: prisma },
-              options: {},
-            }
-          ],
+              {
+                resource: {
+                  model: dmmf.modelMap.WalletTransfer,
+                  client: prisma,
+                },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        if (request.method === 'post' ) {
+                        const { id, ...payload } = request.payload;
+                        console.log(payload);
+                        request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                resource: {
+                  model: dmmf.modelMap.UserPaymentRequest,
+                  client: prisma,
+                },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                resource: {
+                  model: dmmf.modelMap.LastPaidFriends,
+                  client: prisma,
+                },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        // console.log(request);
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          // console.log(payload);
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                resource: { model: dmmf.modelMap.keyValue, client: prisma },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        // console.log(request);
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          // console.log(payload);
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
+                },
+              },
+            ],
           },
           auth: {
             authenticate,
             cookieName: 'adminjs',
-            cookiePassword: 'secret'
+            cookiePassword: 'secret',
           },
           sessionOptions: {
             resave: true,
             saveUninitialized: true,
-            secret: 'secret'
+            secret: 'secret',
           },
-        }
-      }
-    })
+          locale: {
+            language: 'fa',
+            translations: {
+              labels: {
+                User: 'کاربران',
+              },
+            },
+          },
+        };
+      },
+    }),
+    
   ],
   controllers: [AppController],
   providers: [AppService, WatchService, SocketGateway, SmsService],

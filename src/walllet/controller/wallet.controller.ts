@@ -19,7 +19,7 @@ import { User } from '../../auth/decorator/user.decorator';
 import { JwtGuard } from '../../auth/guard';
 import { RolesGuard } from '../../auth/guard/role.guard';
 import { PaymentRequestDto } from '../dto/payment-request.dto';
-import { WalletService } from '../services/wallet.service';
+import { WalletService } from '../wallet-services/wallet.service';
 import { Response } from 'express';
 import { TransferDto, UserTransferDto } from '../dto/transfer.dto';
 import { Role } from 'src/utils/enums';

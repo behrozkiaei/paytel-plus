@@ -63,6 +63,7 @@
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
     "prisma": "^4.10.1",
+    "qs": "^6.11.1",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^4.1.2",
     "rxjs": "^7.8.0",

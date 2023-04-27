@@ -1,7 +1,7 @@
 import { InternetDto } from '../dto/internet.dto';
-import { PaymentRequestDto } from './../dto/payment-request.dto';
+import { PaymentRequestDto } from '../dto/payment-request.dto';
 import { INewResponseAPI } from 'src/utils/interfaces/response-type';
-import { UserTransferDto } from './../dto/transfer.dto';
+import { UserTransferDto } from '../dto/transfer.dto';
 import { UpdateWalletDto } from '../dto/update-wallet.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -425,6 +425,7 @@ export class WalletService {
     customerId,
     amount,
     orderId,
+    callback_url = null
   ): Promise<INewResponseAPI<any>> {
     const resnum = Date.now().toString();
     // const config = await this.prisma.config.findFirst({})
@@ -437,7 +438,7 @@ export class WalletService {
       const data = JSON.stringify({
         merchant_id: this.config.get('MERCHANT_ID_ZARRINPAL'),
         amount: +amount,
-        callback_url: `${this.config.get('SERVER_ADDRESS')}/transactions/callback`,
+        callback_url: callback_url ? callback_url : `${this.config.get('SERVER_ADDRESS')}/transactions/callback`,
         description: ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
         metadata: { mobile: wallet.User.mobile },
         order_id: orderId,
@@ -533,4 +534,5 @@ export class WalletService {
       });
     }
   }
+  
 }

@@ -76,6 +76,6 @@ async function bootstrap() {
     // // app.use(csurf());
     app.setBaseViewsDir(join(__dirname, process.env.ENVIRONMENT == 'prod' ? '.' :'..', 'views'));
     app.setViewEngine('hbs');
-    await app.listen(3000);
+    await app.listen(process.env.PORT ?? 3000);
   }
 bootstrap();

@@ -1,11 +1,11 @@
 import {
   ChargePayload,
   ChargePayloadForDb,
-} from './../utils/interfaces/charge-payload.interface';
+} from '../../utils/interfaces/charge-payload.interface';
 /* eslint-disable prettier/prettier */
 import { INewResponseAPI } from 'src/utils/interfaces/response-type';
 import { CACHE_MANAGER, Injectable, Inject } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { InternetProducts, internetPayloadForRequest } from 'src/utils/interfaces/internet-products-model';
 import axios from 'axios';
 import { Cache } from 'cache-manager';

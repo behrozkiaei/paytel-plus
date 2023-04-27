@@ -1,9 +1,14 @@
-import { CACHE_MANAGER, ForbiddenException, Injectable,Inject } from '@nestjs/common';
+import {
+  CACHE_MANAGER,
+  ForbiddenException,
+  Injectable,
+  Inject,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
   phoneNumberNormalizer,
-  phoneNumberValidator
+  phoneNumberValidator,
 } from '@persian-tools/persian-tools';
 import * as admin from 'firebase-admin';
 
@@ -19,14 +24,14 @@ import { SetPassDto } from './dto/set-pass.dto';
 import * as bcrypt from 'bcrypt';
 // import { sendMessage } from '../utils/sendMessage';
 // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
-const  moment = require('moment-jalaali')
+const moment = require('moment-jalaali');
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
-    private smsService :SmsService,
+    private smsService: SmsService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -37,36 +42,18 @@ export class AuthService {
     const mobile = toEn(phoneNumberNormalizer(dto.mobile, '0'));
     try {
       // const password ="1234" || (Math.floor(Math.random() * 9000) + 1000).toString();
-     
-      const password = dto.mobile =="09116264382" || dto.mobile =="09302803271"  ? "1234": (Math.floor(Math.random() * 9000) + 1000).toString();
+
+      const password =
+        dto.mobile == '09116264382' || dto.mobile == '09302803271'
+          ? '1234'
+          : (Math.floor(Math.random() * 9000) + 1000).toString();
       let user = await this.findUserByPhone(mobile);
       if (!user) {
-        //throw new ForbiddenException('Phone number registered before');
-        user = await this.prisma.user.create({
-          data: {
-            phone: mobile,
-            mobile: mobile,
-            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-            password: password,
-            active: true,
-          },
-        });
-        const lastWallet = await this.prisma.wallet.findFirst({
-          orderBy: {
-            date: 'desc',
-          },
-        });
-
-        await this.prisma.wallet.create({
-          data: {
-            userId: user.id,
-            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-            amount: 0,
-            walletCode: ((+lastWallet?.walletCode) + 1).toString(),
-          },
-        });
+        user = await this.createWalletIfUserNotExist(mobile, password);
       }
-
+      if (!user) {
+        throw new Error('user not created');
+      }
       if (!user.active) throw new ForbiddenException('اکانت شما  فعال  نیست');
       await this.prisma.user.update({
         where: {
@@ -79,10 +66,10 @@ export class AuthService {
         },
       });
       // wait send message to user
-      if(!(dto.mobile =="09116264382" || dto.mobile =="09302803271"))
-      await this.smsService.sendOtp(user.mobile, password);
+      if (!(dto.mobile == '09116264382' || dto.mobile == '09302803271'))
+        await this.smsService.sendOtp(user.mobile, password);
       // wait send message to user
-        
+
       return { status: true, stasusCode: 0, result: true };
     } catch (error) {
       console.log(error);
@@ -176,42 +163,37 @@ export class AuthService {
       if (dif > 3) {
         throw new ForbiddenException('Otp Expired');
       }
-  
-      const uid =    uuidv4();
-      await this.cacheManager.set(
-        user.id.toString(),
-        uid,
-        3 * 60*1000,
-      );
-       
-      if(dto.fcmToken){
-        await this.saveFcmToken(dto,user.id);
+
+      const uid = uuidv4();
+      await this.cacheManager.set(user.id.toString(), uid, 3 * 60 * 1000);
+
+      if (dto.fcmToken) {
+        await this.saveFcmToken(dto, user.id);
       }
-      if( !user.password2 ){
+      if (!user.password2) {
         return {
           result: {
             otpType: OtpType.RessetPass,
             token: null,
-            uid : uid,
-            userId: user.id
+            uid: uid,
+            userId: user.id,
           },
           status: true,
         };
       }
-       if(user.otpType == OtpType.RessetPass ){
- 
+      if (user.otpType == OtpType.RessetPass) {
         return {
           result: {
             otpType: OtpType.RessetPass,
             token: null,
-            uid : uid,
-            userId: user.id
+            uid: uid,
+            userId: user.id,
           },
           status: true,
         };
-      }  
+      }
       if (user.otpType == OtpType.Login) {
-       const  token = await this.signToken(user.id);
+        const token = await this.signToken(user.id);
         return {
           result: {
             otpType: user.otpType,
@@ -252,53 +234,82 @@ export class AuthService {
     }
   }
 
-  async setPassword(dto : SetPassDto) {
-    try{
-
-      const uuid = await this.cacheManager.get(dto.userId)
-      console.log(uuid)
+  async setPassword(dto: SetPassDto) {
+    try {
+      const uuid = await this.cacheManager.get(dto.userId);
+      console.log(uuid);
       console.log(uuid == dto.uid);
-      if(!uuid ){
-        throw Error('خطای ارسال از سمت کاربر')
+      if (!uuid) {
+        throw Error('خطای ارسال از سمت کاربر');
       }
-      if(uuid != dto.uid){
-        throw Error('خطا در دریافت رمز')
+      if (uuid != dto.uid) {
+        throw Error('خطا در دریافت رمز');
       }
-      const user = await this.prisma.user.findUnique({where:{id:dto.userId}});
-     
-      if(!user){
-        throw Error('کاربر یافت نشد')
+      const user = await this.prisma.user.findUnique({
+        where: { id: dto.userId },
+      });
+
+      if (!user) {
+        throw Error('کاربر یافت نشد');
       }
       const saltOrRounds = 10;
       const salt = bcrypt.genSaltSync(saltOrRounds);
-      const hash =  bcrypt.hashSync(dto.password, salt);
-      console.log(hash)
-      await this.prisma.user.update({where:{id:user.id},data:{password2 :hash }})
+      const hash = bcrypt.hashSync(dto.password, salt);
+      console.log(hash);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password2: hash },
+      });
       const token = await this.signToken(user.id);
 
-   
       return {
         result: {
           token: token.access_token ?? null,
         },
         status: true,
       };
-    }catch(e){
-      console.log(e)
+    } catch (e) {
+      console.log(e);
       return {
-        status:false,
-        message :e.message ?? "خطا در ارسال رمز"
-      }
+        status: false,
+        message: e.message ?? 'خطا در ارسال رمز',
+      };
     }
   }
 
+  async saveFcmToken(dto: verifyOtpDto, id: string) {
+    if (!dto.fcmToken) return;
+    return await this.prisma.user.update({
+      where: { id: id },
+      data: {
+        fcmToken: dto.fcmToken,
+      },
+    });
+  }
+  async createWalletIfUserNotExist(mobile, password = null) {
+    const user = await this.prisma.user.create({
+      data: {
+        phone: mobile,
+        mobile: mobile,
+        date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+        password: password,
+        active: true,
+      },
+    });
+    const lastWallet = await this.prisma.wallet.findFirst({
+      orderBy: {
+        date: 'desc',
+      },
+    });
 
- async saveFcmToken(dto:verifyOtpDto,id:string){
-  return await this.prisma.user.update({
-    where:{id:id},
-    data:{
-      fcmToken : dto.fcmToken 
-    }
-  })
- }
+    await this.prisma.wallet.create({
+      data: {
+        userId: user.id,
+        date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+        amount: 0,
+        walletCode: (+lastWallet?.walletCode + 1).toString(),
+      },
+    });
+    return user;
+  }
 }
