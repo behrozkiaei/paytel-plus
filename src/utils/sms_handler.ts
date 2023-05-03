@@ -6,7 +6,6 @@ const api = Kavenegar.KavenegarApi({
 });
 @Injectable()
 export class SmsService {
-  
   constructor(private config: ConfigService) {}
   async sendOtp(receptor, message) {
     try {

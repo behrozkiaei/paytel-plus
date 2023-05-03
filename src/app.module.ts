@@ -163,10 +163,10 @@ const authenticate = async (email: string, password: string) => {
                   actions: {
                     edit: {
                       before: async (request) => {
-                        if (request.method === 'post' ) {
-                        const { id, ...payload } = request.payload;
-                        console.log(payload);
-                        request.payload = payload;
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          console.log(payload);
+                          request.payload = payload;
                         }
                         return request;
                       },
@@ -267,7 +267,6 @@ const authenticate = async (email: string, password: string) => {
         };
       },
     }),
-    
   ],
   controllers: [AppController],
   providers: [AppService, WatchService, SocketGateway, SmsService],

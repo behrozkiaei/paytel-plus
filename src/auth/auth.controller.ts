@@ -1,8 +1,7 @@
-import { SendOtp } from './dto/auth.dto';
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { AuthDto } from './dto';
+import { SendOtp } from './dto/auth.dto';
 import { LoginUserDto, verifyOtpDto } from './dto/create-user.dto';
 import { SetPassDto } from './dto/set-pass.dto';
 
@@ -35,5 +34,4 @@ export class AuthController {
     console.log(dto);
     return this.authService.setPassword(dto);
   }
-
 }

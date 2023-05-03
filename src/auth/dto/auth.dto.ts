@@ -1,11 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsEmail,
   IsNotEmpty,
   IsString,
   Matches,
   Max,
-  Min,
+  Min
 } from 'class-validator';
 import { OtpType } from 'src/utils/enums';
 

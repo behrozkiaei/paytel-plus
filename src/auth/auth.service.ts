@@ -1,8 +1,8 @@
 import {
   CACHE_MANAGER,
   ForbiddenException,
-  Injectable,
   Inject,
+  Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -10,9 +10,8 @@ import {
   phoneNumberNormalizer,
   phoneNumberValidator,
 } from '@persian-tools/persian-tools';
-import * as admin from 'firebase-admin';
 
-import { createDecipheriv } from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { Cache } from 'cache-manager';
 import { OtpType } from 'src/utils/enums';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,7 +20,6 @@ import { toEn } from '../utils/toEn';
 import { SmsService } from './../utils/sms_handler';
 import { LoginUserDto, sendOtpDto, verifyOtpDto } from './dto/create-user.dto';
 import { SetPassDto } from './dto/set-pass.dto';
-import * as bcrypt from 'bcrypt';
 // import { sendMessage } from '../utils/sendMessage';
 // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
 const moment = require('moment-jalaali');

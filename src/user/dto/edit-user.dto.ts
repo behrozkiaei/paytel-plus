@@ -85,7 +85,7 @@ export class BankAccount {
   @ApiProperty()
   sheba: string;
 }
-export class CheckPassDto{
+export class CheckPassDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty()
@@ -96,11 +96,10 @@ export class ListOfNumbers {
   @IsNotEmpty()
   @IsString()
   @ApiProperty()
-  listOfNumbers :string;
+  listOfNumbers: string;
 }
 
 export class contacts {
-
   @IsString()
   @IsOptional()
   @ApiProperty()
@@ -113,8 +112,6 @@ export class contacts {
 }
 
 export class StorageObjectDto {
-  
-
   @ApiProperty({ type: 'string', format: 'binary', required: true })
-  file: Express.Multer.File
+  file: Express.Multer.File;
 }

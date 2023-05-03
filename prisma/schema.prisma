@@ -53,7 +53,7 @@ model User{
   fromUsers LastPaidFriends[]  @relation("fromUserId")
   destUsers LastPaidFriends[]  @relation("destUserId")
   najiInquiry NajiInquiryResult[] 
-  userPlates Plate[] 
+  naji NajiUser[]
   order Order[]
   @@map("user")
 }
@@ -97,8 +97,8 @@ model Transaction {
     fee_type String?
     fee Int?
     //for order pruduct
-    order    Order?  @relation(fields: [orderId], references: [id])
-    orderId  String? @unique @db.ObjectId
+    order    Order  @relation(fields: [orderId], references: [id])
+    orderId  String @unique @db.ObjectId
     @@map("transaction")
 }
 model Order {
@@ -109,6 +109,7 @@ model Order {
     user    User  @relation(fields: [userId], references: [id])
     userId  String  @db.ObjectId
     desc keyValue[]
+    najiInquiryResult NajiInquiryResult?
     date String  
     title String?
     subTitle String?
@@ -178,6 +179,7 @@ model Config{
     map_apiKey String?
     kavenegar_token String?
     naji_token String?
+    naji_token_date String?
     @@map("config")
   }
 
@@ -218,16 +220,34 @@ model NajiInquiryResult{
   type NajiType
   status Boolean?
   paid Boolean?
+  order    Order  @relation(fields: [orderId], references: [id])
+  orderId  String  @db.ObjectId @unique
   plate    Plate?  @relation(fields: [plateId], references: [id])
   plateId  String?  @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@map("najiInquiryResult")
 }
-model Plate{
+model NajiUser{
    id     String @id @default(auto()) @map("_id") @db.ObjectId 
+   najiId String?
+   userPlates Plate[]
    user    User  @relation(fields: [userId], references: [id])
    userId  String  @db.ObjectId 
+   nationalCode String?
+   nationalCodeVerified Boolean @default(false)
+   mobile String?
+   driverLicenseCode String?
+   date String
+   name String?
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
+   @@map("najiUser")
+}
+model Plate{
+   id     String @id @default(auto()) @map("_id") @db.ObjectId 
+   naji    NajiUser  @relation(fields: [najiId], references: [id])
+   najiId  String  @db.ObjectId 
    plateType PlateType @default(CAR)
    firstPart String
    secondPart String

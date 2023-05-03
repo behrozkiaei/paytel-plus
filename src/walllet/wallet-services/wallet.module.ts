@@ -5,7 +5,12 @@ import { WalletService } from './wallet.service';
 import { ServicesService } from 'src/bussiness-logic/charge-internet/services.service';
 
 @Module({
-    providers: [OrderMakerService,TransactionsService,WalletService,ServicesService],
-    exports :[OrderMakerService,TransactionsService,WalletService]
+  providers: [
+    OrderMakerService,
+    TransactionsService,
+    WalletService,
+    ServicesService,
+  ],
+  exports: [OrderMakerService, TransactionsService, WalletService],
 })
 export class WalletServiceModule {}

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentRequestService } from './payment-request.service';
 import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
 import { UpdatePaymentRequestDto } from './dto/update-payment-request.dto';
@@ -19,18 +28,21 @@ export class PaymentRequestController {
 
   @Post()
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  create(@User() user , @Body() createPaymentRequestDto: CreatePaymentRequestDto) {
-    return this.paymentRequestService.create(user  , createPaymentRequestDto);
+  create(
+    @User() user,
+    @Body() createPaymentRequestDto: CreatePaymentRequestDto,
+  ) {
+    return this.paymentRequestService.create(user, createPaymentRequestDto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  findAll(@User() user) :Promise<INewResponseAPI<any>> {
+  findAll(@User() user): Promise<INewResponseAPI<any>> {
     return this.paymentRequestService.findAll(user.id);
   }
   @Delete(':id')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  remove(@User() user ,@Param('id') id: string,) :Promise<INewResponseAPI<any>> {
+  remove(@User() user, @Param('id') id: string): Promise<INewResponseAPI<any>> {
     return this.paymentRequestService.remove(id);
   }
 
@@ -40,8 +52,10 @@ export class PaymentRequestController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePaymentRequestDto: UpdatePaymentRequestDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updatePaymentRequestDto: UpdatePaymentRequestDto,
+  ) {
     return this.paymentRequestService.update(+id, updatePaymentRequestDto);
   }
-
 }

@@ -4,5 +4,5 @@ export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
 
 export enum Role {
   USER,
-  ADMIN
+  ADMIN,
 }

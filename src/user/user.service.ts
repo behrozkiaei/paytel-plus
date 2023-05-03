@@ -1,4 +1,9 @@
-import { BankAccount, CheckPassDto, contacts, UpdateUser } from './dto/edit-user.dto';
+import {
+  BankAccount,
+  CheckPassDto,
+  contacts,
+  UpdateUser,
+} from './dto/edit-user.dto';
 /* eslint-disable prettier/prettier */
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import * as fs from 'fs';

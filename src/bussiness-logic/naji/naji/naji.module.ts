@@ -8,7 +8,14 @@ import { OrderMakerService } from 'src/walllet/wallet-services/order-maker.servi
 
 @Module({
   controllers: [NajiController],
-  providers: [NajiService,TransactionsService , UserService,WalletService,OrderMakerService,TransactionsService],
-  exports :[NajiService]
+  providers: [
+    NajiService,
+    TransactionsService,
+    UserService,
+    WalletService,
+    OrderMakerService,
+    TransactionsService,
+  ],
+  exports: [NajiService],
 })
 export class NajiModule {}

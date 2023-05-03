@@ -1,4 +1,12 @@
-import { BankAccount, CheckPassDto, contacts, ListOfNumbers, StorageObjectDto, UpdateAvatarDto, UpdateUser } from './dto/edit-user.dto';
+import {
+  BankAccount,
+  CheckPassDto,
+  contacts,
+  ListOfNumbers,
+  StorageObjectDto,
+  UpdateAvatarDto,
+  UpdateUser,
+} from './dto/edit-user.dto';
 /* eslint-disable @typescript-eslint/no-var-requires */
 import {
   Body,
@@ -39,12 +47,9 @@ export class UserController {
   constructor(private userService: UserService) {}
   @Get('me')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-
   getMe(@User() user: any): Promise<INewResponseAPI<any>> {
     return this.userService.getMe(user);
   }
-
-
 
   @Get('user-info/:id')
   @Roles(Role.ADMIN)
@@ -69,7 +74,7 @@ export class UserController {
   }
 
   @Post('check-pass')
-  @Roles(Role.ADMIN, Role.LEVEL2, Role.LEVEL1 ,)
+  @Roles(Role.ADMIN, Role.LEVEL2, Role.LEVEL1)
   checkPass(
     @User() user: any,
     @Body() dto: CheckPassDto,
@@ -103,7 +108,6 @@ export class UserController {
     @User() user: string,
     @Body() dto: UpdateAvatarDto,
   ): Promise<INewResponseAPI<any>> {
-    
     const url = await this.userService.convertBase64toImage(dto.avatar);
     return this.userService.updateAvatar(user, url);
   }
@@ -114,24 +118,21 @@ export class UserController {
     @Body() dto: BankAccount,
   ): Promise<INewResponseAPI<any>> {
     console.log(dto);
-    
+
     return this.userService.updateBankAccount(user, dto);
   }
 
   // http://localhost:3000/my-controller?list=string1,string2,string3
 
   @Post('mutual-friends')
-  @Roles(Role.ADMIN,Role.LEVEL1,Role.LEVEL2)
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   mutualFriends(
     @User() user,
-    @Body()  list: contacts[],
-  )
-  : Promise<INewResponseAPI<any>> { 
-    
-    console.log("requested");
+    @Body() list: contacts[],
+  ): Promise<INewResponseAPI<any>> {
+    console.log('requested');
     return this.userService.findMutualFriends(user, list);
   }
- 
 
   @Post('upload-selfie-video')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
@@ -141,9 +142,10 @@ export class UserController {
       storage: diskStorage({
         destination: './public/upload',
         filename: (req, file, callback) => {
-          console.log(file.originalname)
+          console.log(file.originalname);
           const ext = extname(file.originalname);
-          const newFileName = moment().format('jYYYY-jMM-jDD-HH-mm-ss-SSS') + ext;
+          const newFileName =
+            moment().format('jYYYY-jMM-jDD-HH-mm-ss-SSS') + ext;
           callback(null, newFileName);
         },
       }),
@@ -155,7 +157,7 @@ export class UserController {
       new ParseFilePipe({
         validators: [new MaxFileSizeValidator({ maxSize: 200000000 })],
       }),
-      )
+    )
     file: Express.Multer.File,
     @Body() dto: StorageObjectDto,
   ) {
@@ -163,4 +165,3 @@ export class UserController {
     return this.userService.uploadSelfieVideo(user, file);
   }
 }
-

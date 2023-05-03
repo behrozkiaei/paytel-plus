@@ -172,9 +172,9 @@ export class TransactionsService {
   async getAllOrders(user, from = 0, take = 10) {
     try {
       const count = await this.prisma.order.aggregate({
-        where:{
+        where: {
           isPaid: true,
-          userId:user.id
+          userId: user.id,
         },
         _count: {
           id: true,
@@ -183,7 +183,7 @@ export class TransactionsService {
       const order = await this.prisma.order.findMany({
         where: {
           isPaid: true,
-          userId:user.id
+          userId: user.id,
         },
         skip: +from,
         take: +take,
@@ -348,21 +348,33 @@ export class TransactionsService {
             fee_type: response.data.data.fee_type,
             fee: response.data.data.fee,
           });
-          const res = await this.transferBaseOnOrderAndTransaction(transaction.order.id);
-          if(!res.status){
-            throw Error("increase error")
+          const res = await this.transferBaseOnOrderAndTransaction(
+            transaction.order.id,
+          );
+          if (!res.status) {
+            throw Error('increase error');
           }
           if (transaction.order?.type == OrderType.increaseWallet) {
-            await this.increaseAmountOrderUpdate(transaction.order.id, response);
+            await this.increaseAmountOrderUpdate(
+              transaction.order.id,
+              response,
+            );
           }
 
           if (transaction.order?.type == OrderType.creditToOtherWallet) {
-            await this.updateTransactionDataInOrder(transaction.order.id, response);
-            await this.walletService.doingTransferWhenAmountIsEnough(transaction.order.id);
+            await this.updateTransactionDataInOrder(
+              transaction.order.id,
+              response,
+            );
+            await this.walletService.doingTransferWhenAmountIsEnough(
+              transaction.order.id,
+            );
           }
 
           if (transaction.order?.type == OrderType.internetByCredit) {
-            return await this.buyInternetAndWalletTransfer(transaction.order.id);
+            return await this.buyInternetAndWalletTransfer(
+              transaction.order.id,
+            );
           }
           if (transaction.order?.type == OrderType.chargeByCredit) {
             return await this.buyChargeAndWalletTransfer(transaction.order.id);
@@ -544,7 +556,7 @@ export class TransactionsService {
         throw new Error('err');
       }
       const dto: InternetProducts = JSON.parse(order.payload);
-    
+
       const buyInternet = await this.services.buyInternet(order.id);
 
       if (!buyInternet.status) {
@@ -604,7 +616,6 @@ export class TransactionsService {
 
   async increaseAmountOrderUpdate(orderId, response) {
     try {
-   
       const transaction = await this.prisma.transaction.findUnique({
         where: { orderId: orderId },
       });
@@ -649,7 +660,7 @@ export class TransactionsService {
   }
 
   async updateTransactionDataInOrder(orderId, response) {
-    try{
+    try {
       const transaction = await this.prisma.transaction.findUnique({
         where: { orderId: orderId },
       });
@@ -683,22 +694,19 @@ export class TransactionsService {
           },
         },
       });
-    
-      
+
       return {
-        status :true
-      }
-  }catch(e){
-   return {
-     status :false
-   }
+        status: true,
+      };
+    } catch (e) {
+      return {
+        status: false,
+      };
+    }
   }
-  }
 
-
-  async transferBaseOnOrderAndTransaction (orderId){
-    try{
-
+  async transferBaseOnOrderAndTransaction(orderId) {
+    try {
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
         include: { user: { include: { Wallet: true } } },
@@ -719,14 +727,13 @@ export class TransactionsService {
       if (!transfer.status) {
         throw new Error('err');
       }
-      return{
-        status:true,
-      }
-    }catch(e){
       return {
-        status : false,
-      }
+        status: true,
+      };
+    } catch (e) {
+      return {
+        status: false,
+      };
     }
   }
-
 }

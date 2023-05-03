@@ -19,7 +19,6 @@ export class TransferDto {
 }
 
 export class UserTransferDto {
-
   @IsNotEmpty()
   @IsString()
   @ApiProperty()
@@ -33,6 +32,5 @@ export class UserTransferDto {
   @IsOptional()
   @IsBoolean()
   @ApiProperty()
-  fromWallet : boolean
-
+  fromWallet: boolean;
 }

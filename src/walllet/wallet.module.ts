@@ -10,7 +10,7 @@ import { OrderMakerService } from 'src/walllet/wallet-services/order-maker.servi
 import { WalletServiceModule } from './wallet-services/wallet.module';
 
 @Module({
-  imports: [WalletTransferModule , WalletServiceModule],
+  imports: [WalletTransferModule, WalletServiceModule],
   controllers: [WalletController, TransactionsController, CallbackController],
 })
 export class WalletModule {}
