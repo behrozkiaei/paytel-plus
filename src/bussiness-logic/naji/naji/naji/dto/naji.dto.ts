@@ -161,3 +161,32 @@ export class DriverNajiDto {
   @ApiProperty()
   najiId: string;
 }
+
+
+export class NationalCodeDto{
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  nationalCode: string;
+}
+
+export class MobileDto{
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  mobile: string;
+}
+
+
+export class MobileAndNationalDto{
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  mobile: string;
+
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  nationalCode: string;
+}

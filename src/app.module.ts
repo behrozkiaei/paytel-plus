@@ -18,6 +18,7 @@ import { WalletModule } from './walllet/wallet.module';
 import { WatchService } from './watch.service';
 import { SocketGateway } from './websocket';
 import { PaymentRequestModule } from './bussiness-logic/payment-request/payment-request.module';
+import { NajiModule } from './bussiness-logic/naji/naji/naji.module';
 
 const DEFAULT_ADMIN = {
   email: 'admin@example.com',
@@ -46,6 +47,7 @@ const authenticate = async (email: string, password: string) => {
     AuthModule,
     UserModule,
     WalletModule,
+    NajiModule,
     MulterModule.register({
       dest: '../public/upload',
     }),

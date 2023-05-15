@@ -736,4 +736,33 @@ export class TransactionsService {
       };
     }
   }
+  async getOrderById(user, id) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: {
+          id: id,
+        },
+        include: {
+          desc: true,
+          user: true,
+        },
+      });
+
+      if (order) {
+        return {
+          result: order,
+          status: true,
+        };
+      } else {
+        return {
+          status: false,
+          message: 'not founded',
+        };
+      }
+    } catch (error) {
+      return {
+        status: false,
+      };
+    }
+  }
 }

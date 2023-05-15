@@ -68,7 +68,7 @@ export class AuthService {
         await this.smsService.sendOtp(user.mobile, password);
       // wait send message to user
 
-      return { status: true, stasusCode: 0, result: true };
+      return { status: true, result: true };
     } catch (error) {
       console.log(error);
       throw error;
@@ -168,7 +168,7 @@ export class AuthService {
       if (dto.fcmToken) {
         await this.saveFcmToken(dto, user.id);
       }
-      if (!user.password2) {
+      if (!user.password2 && !dto.fromWeb) {
         return {
           result: {
             otpType: OtpType.RessetPass,
@@ -179,7 +179,7 @@ export class AuthService {
           status: true,
         };
       }
-      if (user.otpType == OtpType.RessetPass) {
+      if (user.otpType == OtpType.RessetPass ) {
         return {
           result: {
             otpType: OtpType.RessetPass,
@@ -224,6 +224,23 @@ export class AuthService {
     };
   }
 
+  
+  async sign5MinToken(userId: string): Promise<{ access_token: string }> {
+    const payload = {
+      sub: userId,
+    };
+    const secret = this.config.get('JWT_SECRET');
+
+    const token = await this.jwt.signAsync(payload, {
+      expiresIn: '5m',
+      secret: secret,
+    });
+
+    return {
+      access_token: token,
+    };
+  }
+
   async sendVerification() {
     try {
       // send sms
@@ -231,6 +248,8 @@ export class AuthService {
       return false;
     }
   }
+
+
 
   async setPassword(dto: SetPassDto) {
     try {

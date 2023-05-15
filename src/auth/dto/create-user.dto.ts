@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -69,5 +70,10 @@ import { OtpType } from 'src/utils/enums';
     @IsOptional()
     @ApiProperty()
     fcmToken? :string
+
+    @IsBoolean()
+    @IsOptional()
+    @ApiProperty()
+    fromWeb? :boolean
 
   }

@@ -98,4 +98,16 @@ export interface DocumentStatusInterface {
 export interface najiResponseId {
   id?: string;
   paymentLink?: string;
+  data?: any;
+  desc: any;
+  Amount?: string,
+  order?:OrderInterface,
+}
+
+export interface OrderInterface {
+  id?: string;
+  transaction?: any;
+  amount?: number;
+  user?: any;
+  userId?: string;
 }

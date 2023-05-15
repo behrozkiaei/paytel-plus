@@ -72,8 +72,7 @@ async function bootstrap() {
     // Increase maximum request payload size to 10mb
     app.use(bodyParser.json({ limit: '10mb' }));
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
-
-    // // app.use(csurf());
+    app.enableCors();
     app.setBaseViewsDir(join(__dirname, process.env.ENVIRONMENT == 'prod' ? '.' :'..', 'views'));
     app.setViewEngine('hbs');
     await app.listen(process.env.PORT ?? 3000);

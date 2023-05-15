@@ -62,6 +62,15 @@ export class TransactionsController {
     return this.transactionService.getAllOrders(user, from, take);
   }
 
+  
+  @Get('/order-by-id')
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+  getOrderById(
+    @User() user: any,
+    @Param('id') id: string
+  ): any {
+    return this.transactionService.getOrderById(user, id);
+  }
   @Post('buyInternet')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   @CanTransaction()

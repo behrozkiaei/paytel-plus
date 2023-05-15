@@ -1,6 +1,9 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { phoneNumberNormalizer } from '@persian-tools/persian-tools';
+import {
+  digitsFaToEn,
+  phoneNumberNormalizer,
+} from '@persian-tools/persian-tools';
 import axios from 'axios';
 import qs from 'qs';
 import { AuthService } from 'src/auth/auth.service';
@@ -26,16 +29,19 @@ import {
 import {
   AggregateViolationReportWhitoutRegisterationDto,
   DriverNajiDto,
+  MobileAndNationalDto,
+  MobileDto,
+  NationalCodeDto,
   NegeticvePoint,
   VerifyUserNajiDto,
   plateDto,
 } from './dto/naji.dto';
+import { error } from 'console';
 const moment = require('moment-jalaali');
 @Injectable()
 export class NajiService {
   constructor(
     private prisma: PrismaService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private config: ConfigService,
     private authService: AuthService,
     private walletService: WalletService,
@@ -43,48 +49,75 @@ export class NajiService {
     private transactionService: TransactionsService,
   ) {}
 
-  async verifyOtpWhenUserisLogein(user,dto: VerifyUserNajiDto) {
+  async verifyOtpWhenUserisLogein(user, dto: VerifyUserNajiDto) {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const mobileEn = toEn(phoneNumberNormalizer(dto.mobile, '0'));
       if (!configData.naji_token) {
         throw new Error('Naji havnt access token');
       }
-      const data = qs.stringify({
+      const data = {
         nationalCode: dto.nationalCode,
         mobile: mobileEn,
         otp: dto.otp,
-      });
-
+      };
+      // console.log(data)
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
-        url: `${this.config.get('SHIRAD_API_URL')}naji/users/initial-register`,
+        url: `${this.config.get('SHIRAD_API_URL')}naji/users`,
         headers: {
-          Authorization: configData.naji_token,
-          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: 'Bearer ' + configData.naji_token,
+          'Content-Type': 'application/json',
         },
         data: data,
       };
+      console.log(config);
       try {
         const response = await axios.request(config);
-        await  this.prisma.najiUser.create({
-          data: {
-            najiId: response.data.userId,
-            date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-            nationalCode: dto.nationalCode,
-            nationalCodeVerified: true,
-            userId: user.id,
-            name : response.data.firstName + ' ' + response.data.lastName,
-          },
-        });
-     
-        const token = await this.authService.signToken(user.id);
+        if (response.status != 200) {
+          return {
+            status: false,
+            message: 'user not registered',
+          };
+        }
+        console.log(response.data);
+        const najiUserIfExist = await this.myNajiUsersByMobileAndNAtional(
+          user,
+          { mobile: dto.mobile, nationalCode: dto.nationalCode },
+        );
+
+        if (najiUserIfExist.status && najiUserIfExist.result) {
+          await this.prisma.najiUser.updateMany({
+            where: {
+              mobile: phoneNumberNormalizer(digitsFaToEn(dto.mobile), '0'),
+              nationalCode: dto.nationalCode,
+              user: {
+                id: user.id,
+              },
+            },
+            data: {
+              najiId: response.data.userId,
+              nationalCodeVerified: true,
+              name: response.data.firstName + ' ' + response.data.lastName,
+            },
+          });
+        } else {
+          await this.prisma.najiUser.create({
+            data: {
+              najiId: response.data.userId,
+              date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+              nationalCode: dto.nationalCode,
+              nationalCodeVerified: true,
+              mobile: dto.mobile,
+              userId: user.id,
+              name: response.data.firstName + ' ' + response.data.lastName,
+            },
+          });
+        }
+
+        // const token = await this.authService.signToken(user.id);
         return {
-          result: {
-            otpType: null,
-            token: token.access_token ?? null,
-          },
           status: true,
         };
       } catch (e) {
@@ -103,40 +136,42 @@ export class NajiService {
   }
 
   //get userId
-  async sendOtpWhenUserisLogein(user , dto) {
+  async sendOtpWhenUserisLogein(user, dto: any) {
     try {
       const mobileEn = toEn(phoneNumberNormalizer(dto.mobile, '0'));
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
+      // console.log(configData)
       if (!configData.naji_token) {
         throw new Error('Naji havnt access token');
       }
-      const data = qs.stringify({
-        nationalCode:dto.nationalCode,
+      const data = {
+        nationalCode: dto.nationalCode,
         mobile: mobileEn,
-      });
+      };
+      // console.log(data)
 
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/initial-register`,
         headers: {
-          Authorization: configData.naji_token,
-          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: 'Bearer ' + configData.naji_token,
+          'Content-Type': 'application/json',
         },
         data: data,
       };
 
-      axios
-        .request(config)
-        .then((response) => {
-          return {
-            status: true,
-          };
-        })
-        .catch((error) => {
-          console.log(error);
-          throw new Error('کد ملی با شماره موبایل شما مطابقت ندارد');
-        });
+      const response = await axios.request(config);
+
+      if (response.status == 200) {
+        return {
+          status: true,
+        };
+      } else {
+        return {
+          status: false,
+        };
+      }
     } catch (e) {
       console.log(e);
       return {
@@ -150,37 +185,37 @@ export class NajiService {
   async sendOtpWhenNotAppAuth(mobile, nationalCode: string) {
     try {
       const mobileEn = toEn(phoneNumberNormalizer(mobile, '0'));
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       if (!configData.naji_token) {
         throw new Error('Naji havnt access token');
       }
-      const data = qs.stringify({
+      const data = {
         nationalCode,
         mobile: mobileEn,
-      });
+      };
 
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/initial-register`,
         headers: {
-          Authorization: configData.naji_token,
-          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: 'Bearer ' + configData.naji_token,
+          'Content-Type': 'application/json',
         },
         data: data,
       };
 
-      axios
-        .request(config)
-        .then((response) => {
-          return {
-            status: true,
-          };
-        })
-        .catch((error) => {
-          console.log(error);
-          throw new Error('کد ملی با شماره موبایل شما مطابقت ندارد');
-        });
+      const response = await axios.request(config);
+
+      if (response.status == 200) {
+        return {
+          status: true,
+        };
+      } else {
+        return {
+          status: false,
+        };
+      }
     } catch (e) {
       console.log(e);
       return {
@@ -192,24 +227,24 @@ export class NajiService {
 
   async verifyOtpWhenNotAppAuth(dto: VerifyUserNajiDto) {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const mobileEn = toEn(phoneNumberNormalizer(dto.mobile, '0'));
       if (!configData.naji_token) {
         throw new Error('Naji havent access token');
       }
-      const data = qs.stringify({
+      const data = {
         nationalCode: dto.nationalCode,
         mobile: mobileEn,
         otp: dto.otp,
-      });
+      };
 
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/initial-register`,
         headers: {
-          Authorization: configData.naji_token,
-          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: 'Bearer ' + configData.naji_token,
+          'Content-Type': 'application/json',
         },
         data: data,
       };
@@ -220,7 +255,7 @@ export class NajiService {
         if (!user) {
           user = await this.authService.createWalletIfUserNotExist(mobileEn);
         }
-      
+
         this.prisma.najiUser.create({
           data: {
             najiId: response.data.userId,
@@ -255,56 +290,55 @@ export class NajiService {
   //get tnaji token
   async getNajiToken() {
     try {
-      const configData = await this.getNajiToken()
-      if(configData){
+      const configData = await this.prisma.config.findFirst({});
 
+      if (configData) {
         const end = moment().format('jYYYY/jMM/jDD HH:mm:ss');
         const duration = moment(end, 'jYYYY/jMM/jDD HH:mm:ss').diff(
           moment(configData.naji_token_date, 'jYYYY/jMM/jDD HH:mm:ss'),
           'minutes',
-          );
-          if(duration < 55){
-            return{
-              naji_token : configData.naji_token
-            }
-          }
+        );
+        if (duration < 55) {
+          return {
+            naji_token: configData.naji_token,
+          };
+        }
       }
-      const data = qs.stringify({
+      const data = {
         client_id: this.config.get('NAJI_CLIENT_ID'),
         client_secret: this.config.get('NAJI_SECRET'),
         grant_type: 'client_credentials',
-      });
+      };
 
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_AUTH_URL')}connect/token`,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
         data: data,
       };
 
-      await axios
-        .request(config)
-        .then((response) => {
-          const result = response.data.access_token;
-          this.prisma.config.update({
-            where: {},
-            data: {
-              naji_token: result,
-              naji_token_date : moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-            },
-          });
-          return {
-            naji_token: result,
-          };
-        })
-        .catch((error) => {
-          throw new Error('not get token');
-        });
+      const response = await axios.request(config);
+
+      const result = response.data.access_token;
+
+      await this.prisma.config.update({
+        where: {
+          id: configData.id,
+        },
+        data: {
+          naji_token: result,
+          naji_token_date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+        },
+      });
+
+      return {
+        naji_token: response.data.access_token,
+      };
     } catch (e) {
-      console.log(e);
+      // console.log(e);
       return {
         status: false,
         message: e.message ?? 'Something goes wrong',
@@ -318,7 +352,7 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
       if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
@@ -330,7 +364,7 @@ export class NajiService {
           dto.najiId
         }/driving-licenses`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -352,23 +386,20 @@ export class NajiService {
         element.rahvarStatus = this.licensStatus(element.rahvarStatus);
         return element;
       });
-      const data = qs.stringify(response);
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.DRIVING_LICENSE,
-        orderId,
-      );
 
-      //update order to paid
-
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام گوهینامه');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -385,7 +416,7 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.NEGETIVE_POINT);
       if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
@@ -397,7 +428,7 @@ export class NajiService {
           dto.najiId
         }/drivinglicenses/${dto.driverLicenseNumber}/negative-point`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -413,22 +444,19 @@ export class NajiService {
         price,
         'انتقال برای استعلام ',
       );
-
-      const data = qs.stringify(response);
-
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.NEGETIVE_POINT,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام نمره منفی راننده');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -444,7 +472,7 @@ export class NajiService {
     dto: DriverNajiDto,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.ACTIVE_PLATES);
 
       if (price > +user.wallet.amount) {
@@ -457,7 +485,7 @@ export class NajiService {
           dto.najiId
         }/license-plates`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -472,24 +500,23 @@ export class NajiService {
         price,
         'انتقال برای استعلام ',
       );
-
       const response: ActivePlateResponseInterface[] = result.data;
 
       const data = qs.stringify(response);
 
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.ACTIVE_PLATES,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام پلاک فعال');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -505,7 +532,7 @@ export class NajiService {
     dto: DriverNajiDto,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.PASSPORT_STATUS);
       if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
@@ -517,7 +544,7 @@ export class NajiService {
           dto.najiId
         }/passport/status`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -537,19 +564,19 @@ export class NajiService {
 
       const data = qs.stringify(response);
 
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.PASSPORT_STATUS,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام وضعیت پاسپورت');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -565,7 +592,7 @@ export class NajiService {
     dto: DriverNajiDto,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.COUNTRY_LEAVING);
       if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
@@ -578,7 +605,7 @@ export class NajiService {
         }/Country-Leaving-permission
           s`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -598,19 +625,19 @@ export class NajiService {
 
       const data = qs.stringify(response);
 
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.COUNTRY_LEAVING,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام وضعیت خروج از کشور');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -626,7 +653,7 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.VIOLATION_REPORT);
       if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
@@ -643,7 +670,7 @@ export class NajiService {
           plateRes.result.naji.najiId
         }/vehicles/${plateRes.result.license}/violations`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -663,19 +690,19 @@ export class NajiService {
 
       const data = qs.stringify(response);
 
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.VIOLATION_REPORT,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام تخلفات رانندگی');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -692,7 +719,7 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const plate = await this.getPlateById(plateId);
       const price = this.getServicePrice(NajiType.VIOLATION_IMAGE);
       if (price > +user.wallet.amount) {
@@ -709,7 +736,7 @@ export class NajiService {
           plate.result.naji.najiId
         }/vehicles/${plate.result.license}/violations/${violationId}/images`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -729,19 +756,19 @@ export class NajiService {
 
       const data = qs.stringify(response);
 
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.VIOLATION_IMAGE,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام تصویر تخلف');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -757,7 +784,7 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.VIOLATION_AGGREGATE);
       if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
@@ -774,7 +801,7 @@ export class NajiService {
           plate.result.naji.najiId
         }/vehicles/${plate.result.license}/violations/aggregate`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -792,21 +819,19 @@ export class NajiService {
 
       const response: ViolationAggregateReportInterface = result.data;
 
-      const data = qs.stringify(response);
-
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.VIOLATION_AGGREGATE,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام تخلفات تجمیعی');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -824,7 +849,7 @@ export class NajiService {
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
       const plate = await this.getPlateById(plateId);
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
 
       const config = {
         method: 'get',
@@ -835,7 +860,7 @@ export class NajiService {
           dto.mobile
         }`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -846,20 +871,19 @@ export class NajiService {
       const response: ViolationAggregateReportInterface = result.data;
 
       const data = qs.stringify(response);
-
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.VIOLATION_AGGREGATE_NO_AUTH,
-        orderId,
-      );
-      if (!inquiry.status) {
-        throw new Error('Not saved inquiry in databse');
-      }
+      await this.updateOrder(orderId, response, 'استعلام تخلفات تجمیعی');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result.id,
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -875,7 +899,7 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      const configData = await this.getNajiToken()
+      const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
       if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
@@ -892,7 +916,7 @@ export class NajiService {
           plate.result.naji.najiId
         }/vehicles/${plate.result.license}`,
         headers: {
-          Authorization: configData.naji_token,
+          Authorization: 'Bearer ' + configData.naji_token,
         },
       };
 
@@ -910,21 +934,19 @@ export class NajiService {
 
       const response: DocumentStatusInterface = result.data;
 
-      const data = qs.stringify(response);
-
-      const inquiry = await this.createInquiry(
-        user,
-        data,
-        NajiType.COUNTRY_LEAVING,
-        orderId,
-      );
-      if (!inquiry.result) {
-        throw new Error('inqury not saved in db');
-      }
+      await this.updateOrder(orderId, response, 'استعلام وضعیت کار ماشین');
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: { desc: true },
+      });
       return {
         status: true,
+        message: 'تراکنش موفق',
         result: {
-          id: inquiry.result ? inquiry.result.id : '',
+          id: orderId,
+          desc: order.desc,
+          Amount: order.amount.toString(),
+          order: order,
         },
       };
     } catch (error) {
@@ -936,7 +958,14 @@ export class NajiService {
 
   //   internal
 
-  async createInquiry(user, data, type, orderId) {
+  async createInquiry(
+    user,
+    data,
+    type,
+    orderId,
+    najiId = null,
+    plateId = null,
+  ) {
     try {
       const inquiry = await this.prisma.najiInquiryResult.create({
         data: {
@@ -945,6 +974,8 @@ export class NajiService {
           data: data,
           orderId: orderId,
           userId: user.id,
+          najiId: najiId ?? undefined,
+          plateId: plateId ?? undefined,
         },
       });
       return {
@@ -1078,6 +1109,14 @@ export class NajiService {
     najiId: string,
   ) {
     try {
+      let license;
+      if (dto.type == PlateType.CAR) {
+        const charDigit = this.plateChartoDigit(dto.charPart);
+        license = `${dto.countryPart}${charDigit}${dto.firstPart}${dto.secondPart}`;
+      }
+      if (dto.type == PlateType.MOTOR) {
+        license = `08${dto.firstPart}${dto.secondPart}000`;
+      }
       const plate = await this.prisma.plate.create({
         data: {
           najiId: najiId,
@@ -1086,6 +1125,7 @@ export class NajiService {
           secondPart: dto.secondPart,
           countryPart: dto.charPart,
           charPart: dto.countryPart,
+          license: license,
           date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
         },
       });
@@ -1210,6 +1250,40 @@ export class NajiService {
       };
     }
   }
+
+  async getPlateByInfo(user, dto: plateDto) {
+    try {
+      let plate = await this.prisma.plate.findFirst({
+        where: {
+          naji: {
+            userId: user.id,
+          },
+          firstPart: dto.firstPart,
+          secondPart: dto.secondPart,
+          charPart: dto.charPart,
+          countryPart: dto.countryPart,
+        },
+        include: {
+          naji: true,
+        },
+      });
+      if (!plate) {
+        return {
+          status: false,
+          message: 'Plate not exist',
+        };
+      }
+      return {
+        status: true,
+        result: plate,
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        status: false,
+      };
+    }
+  }
   makePlateLicens(plate) {
     try {
       let license = '';
@@ -1236,26 +1310,25 @@ export class NajiService {
     return 51000;
   }
 
-  async makeorder(dto: any, type: NajiType, user) {
-    const order = await this.orderMaker.makeOrder(
-      dto.fromWallet
-        ? OrderType.najiInquiryByWallet
-        : OrderType.najiInquiryByCredit,
-      user,
-      {
+  async makeorder(dto: any, type: OrderType, user) {
+    try {
+      const order = await this.orderMaker.makeOrder(type, user, {
         ...dto,
         type: type,
-      },
-    );
+      });
 
-    return order;
+      return order;
+    } catch (e) {
+      console.log(e);
+      throw new Error('Some thing went wrong');
+    }
   }
   async createNajiTransaction(userId, orderId, price) {
     const res = await this.walletService.createTransaction(
       userId,
       price,
       orderId,
-      `${this.config.get('SERVER_ADDRESS')}/naji/callback`,
+      `${this.config.get('FRONT_SERVER')}/naji-callback/callback`,
     );
     return res;
   }
@@ -1276,17 +1349,16 @@ export class NajiService {
         id: transaction.order.userId,
       },
     });
-    let res;
+    let res:INewResponseAPI<najiResponseId> ;
     switch (dto.type) {
-      case NajiType.ACTIVE_PLATES:
+      case OrderType.ACTIVE_PLATES_BY_CREDIT:
         res = await this.activePlate(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
-        return res;
         break;
-      case NajiType.DOCUMENT_STATUS:
+      case OrderType.DOCUMENT_STATUS_BY_CREDIT:
         res = await this.documentStatus(
           user,
           dto.plateId,
@@ -1295,23 +1367,21 @@ export class NajiService {
         return res;
 
         break;
-      case NajiType.NEGETIVE_POINT:
+      case OrderType.NEGETIVE_POINT_BY_CREDIT:
         res = await this.negetivePoint(
           user,
           dto as unknown as NegeticvePoint,
           transaction.order.id,
         );
-        return res;
         break;
-      case NajiType.VIOLATION_AGGREGATE:
+      case OrderType.VIOLATION_AGGREGATE_BY_CREDIT:
         res = await this.getViolationReport(
           user,
           dto.plateId,
           transaction.order.id,
         );
-        return res;
         break;
-      case NajiType.VIOLATION_AGGREGATE_NO_AUTH:
+      case OrderType.VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT:
         const { plateId, ...payload } = dto;
         res = await this.getAggregateViolationReportWhitoutRegisteration(
           user,
@@ -1319,54 +1389,51 @@ export class NajiService {
           payload as unknown as AggregateViolationReportWhitoutRegisterationDto,
           transaction.order.id,
         );
-        return res;
 
         break;
-      case NajiType.COUNTRY_LEAVING:
+      case OrderType.COUNTRY_LEAVING_BY_CREDIT:
         res = await this.getCountryLeavingStatus(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
-        return res;
         break;
-      case NajiType.DRIVING_LICENSE:
+      case OrderType.DRIVING_LICENSE_BY_CREDIT:
         res = await this.driverLicense(
           user,
           dto as unknown as DriverNajiDto,
           transaction.order.id,
-        );
-        return res;
+        ) ;
         break;
-      case NajiType.PASSPORT_STATUS:
+      case OrderType.PASSPORT_STATUS_BY_CREDIT:
         res = await this.getPassportStatus(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
-        return res;
         break;
-      case NajiType.VIOLATION_IMAGE:
+      case OrderType.VIOLATION_IMAGE_BY_CREDIT:
         res = await this.violationImage(
           user,
           dto.plateId,
           dto.violationId,
           transaction.order.id,
         );
-        return res;
 
         break;
-      case NajiType.VIOLATION_REPORT:
+      case OrderType.VIOLATION_REPORT_BY_CREDIT:
         res = await this.getViolationReport(
           user,
           dto.plateId,
           transaction.order.id,
         );
-        return res;
         break;
       default:
         break;
     }
+    const token = await this.authService.sign5MinToken(user.id);
+    return { url: `${this.config.get("FRONT_SERVER")}/id=${res.result.order.id}&token=${token}`, statusCode: 302 };
+
   }
   async registerUserAndPlate(
     dto: AggregateViolationReportWhitoutRegisterationDto,
@@ -1376,7 +1443,7 @@ export class NajiService {
     if (!user) {
       user = await this.authService.createWalletIfUserNotExist(mobileEn);
     }
-    const configData = await this.getNajiToken()
+    const configData = await this.getNajiToken();
 
     const najiUser = await this.prisma.najiUser.create({
       data: {
@@ -1396,5 +1463,223 @@ export class NajiService {
     return { user, plate: plate.result };
   }
 
+  async getMyNajiUser(user) {
+    try {
+      const najiUsers = await this.prisma.najiUser.findMany({
+        where: {
+          user: {
+            id: user.id,
+          },
+        },
+      });
+      return {
+        status: true,
+        result: najiUsers,
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: false,
+        message: 'error ',
+      };
+    }
+  }
 
+  async myNajiUsersByNationalCode(
+    user,
+    dto: any,
+  ): Promise<INewResponseAPI<any>> {
+    try {
+      const najiUser = await this.prisma.najiUser.findFirst({
+        where: {
+          nationalCode: digitsFaToEn(dto.nationalCode),
+          user: {
+            id: user.id,
+          },
+        },
+      });
+      return {
+        status: true,
+        result: najiUser,
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: false,
+        message: 'error ',
+      };
+    }
+  }
+  async myNajiUsersByMobile(
+    user,
+    dto: MobileDto,
+  ): Promise<INewResponseAPI<any>> {
+    try {
+      const najiUser = await this.prisma.najiUser.findFirst({
+        where: {
+          mobile: phoneNumberNormalizer(digitsFaToEn(dto.mobile), '0'),
+          user: {
+            id: user.id,
+          },
+        },
+      });
+      return {
+        status: true,
+        result: najiUser,
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: false,
+        message: 'error ',
+      };
+    }
+  }
+  async myNajiUsersByMobileAndNAtional(
+    user,
+    dto: MobileAndNationalDto,
+  ): Promise<INewResponseAPI<any>> {
+    try {
+      const najiUser = await this.prisma.najiUser.findFirst({
+        where: {
+          mobile: phoneNumberNormalizer(digitsFaToEn(dto.mobile), '0'),
+          nationalCode: dto.nationalCode,
+          userId: user.id,
+        },
+      });
+
+      return {
+        status: najiUser ? true : false,
+        result: najiUser ?? undefined,
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: false,
+        message: 'error ',
+      };
+    }
+  }
+  async getAllInquiryRes(
+    user,
+    page: string,
+    size: string,
+  ): Promise<INewResponseAPI<any>> {
+    try {
+      const myInquiryCount = await this.prisma.najiInquiryResult.aggregate({
+        where: {
+          userId: user.id,
+        },
+        _count: {
+          userId: true,
+        },
+      });
+
+      const myInquiry = await this.prisma.najiInquiryResult.findMany({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          order: true,
+          plate: true,
+          naji: true,
+        },
+        take: +size ?? 10,
+        skip: +page ?? 0,
+        orderBy: {
+          id: 'desc',
+        },
+      });
+      return {
+        status: true,
+        result: {
+          myInquiry,
+          count: myInquiryCount._count,
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: false,
+        message: 'error ',
+      };
+    }
+  }
+
+  async getInquiryByIdRes(user, id): Promise<INewResponseAPI<any>> {
+    try {
+      const myInquiry = await this.prisma.najiInquiryResult.findUnique({
+        where: {
+          id: id,
+        },
+        include: {
+          order: true,
+          plate: true,
+          naji: true,
+        },
+      });
+      return {
+        status: true,
+        result: {
+          ...myInquiry,
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: false,
+        message: 'error ',
+      };
+    }
+  }
+  async updateOrder(
+    orderId: string,
+    response: any,
+    title: string,
+  ): Promise<void> {
+    let keyValueObj = [];
+    if (!Array.isArray(response)) {
+      for (let key in response) {
+        keyValueObj.push({
+          key: key,
+          value: response[key],
+          orderId: orderId,
+          key_en: key,
+        });
+      }
+    }
+    let res: any;
+    if (Array.isArray(response)) {
+      for (let i = 0; i < response.length; i++) res = response[i];
+      for (let key in res) {
+        keyValueObj.push({
+          key: key,
+          value: res[key],
+          orderId: orderId,
+          key_en: key,
+        });
+        keyValueObj.push({
+          key: 'separator',
+          value: 'separator',
+          orderId: orderId,
+        });
+      }
+    }
+
+    await this.prisma.keyValue.createMany({
+      data: keyValueObj,
+    });
+    await this.prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        isPaid: true,
+        title: title,
+        datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+        data1: JSON.stringify(response),
+      },
+    });
+    return;
+  }
 }
