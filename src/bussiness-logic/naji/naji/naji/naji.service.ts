@@ -140,7 +140,7 @@ export class NajiService {
     try {
       const mobileEn = toEn(phoneNumberNormalizer(dto.mobile, '0'));
       const configData = await this.getNajiToken();
-      // console.log(configData)
+      console.log(configData)
       if (!configData.naji_token) {
         throw new Error('Naji havnt access token');
       }
@@ -292,7 +292,7 @@ export class NajiService {
     try {
       const configData = await this.prisma.config.findFirst({});
 
-      if (configData) {
+      if (configData && configData.naji_token) {
         const end = moment().format('jYYYY/jMM/jDD HH:mm:ss');
         const duration = moment(end, 'jYYYY/jMM/jDD HH:mm:ss').diff(
           moment(configData.naji_token_date, 'jYYYY/jMM/jDD HH:mm:ss'),
@@ -315,7 +315,7 @@ export class NajiService {
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_AUTH_URL')}connect/token`,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         data: data,
       };
@@ -323,7 +323,7 @@ export class NajiService {
       const response = await axios.request(config);
 
       const result = response.data.access_token;
-
+      console.log(result);
       await this.prisma.config.update({
         where: {
           id: configData.id,
@@ -335,10 +335,10 @@ export class NajiService {
       });
 
       return {
-        naji_token: response.data.access_token,
+        naji_token: result,
       };
     } catch (e) {
-      // console.log(e);
+      console.log(e);
       return {
         status: false,
         message: e.message ?? 'Something goes wrong',
@@ -1123,8 +1123,8 @@ export class NajiService {
           plateType: dto.type == 'MOTOR' ? PlateType.MOTOR : PlateType.CAR,
           firstPart: dto.firstPart,
           secondPart: dto.secondPart,
-          countryPart: dto.charPart,
-          charPart: dto.countryPart,
+          countryPart: dto.countryPart,
+          charPart: dto.charPart,
           license: license,
           date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
         },
@@ -1150,7 +1150,11 @@ export class NajiService {
               id: user.id,
             },
           },
+          
         },
+        include:{
+naji:true
+        }
       });
       return {
         status: true,
