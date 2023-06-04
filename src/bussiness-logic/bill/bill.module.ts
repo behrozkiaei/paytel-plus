@@ -7,6 +7,7 @@ import { OrderMakerService } from 'src/walllet/wallet-services/order-maker.servi
 import { TransactionsService } from 'src/walllet/wallet-services/transactions.service';
 import { WalletService } from 'src/walllet/wallet-services/wallet.service';
 import { BillService } from './bill.service';
+import { ServicesService } from '../charge-internet/services.service';
 
 @Module({
   controllers: [],
@@ -18,6 +19,7 @@ import { BillService } from './bill.service';
     TransactionsService,
     UserService,
     WalletService,
+    ServicesService,
     OrderMakerService,
     TransactionsService,
     AuthService,

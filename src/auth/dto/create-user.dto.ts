@@ -22,7 +22,7 @@ import { OtpType } from 'src/utils/enums';
     mobile :string
 
 
-    @IsString()
+
     @IsOptional()
     @ApiProperty()
     otpType :OtpType

@@ -20,6 +20,7 @@ import { toEn } from '../utils/toEn';
 import { SmsService } from './../utils/sms_handler';
 import { LoginUserDto, sendOtpDto, verifyOtpDto } from './dto/create-user.dto';
 import { SetPassDto } from './dto/set-pass.dto';
+import { OtpTypeStringToEnumHelper } from 'src/utils/enum.helpers';
 // import { sendMessage } from '../utils/sendMessage';
 // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
 const moment = require('moment-jalaali');
@@ -60,7 +61,7 @@ export class AuthService {
         data: {
           password: password,
           otpDate: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-          otpType: dto.otpType ?? OtpType.Login,
+          otpType: dto.otpType in OtpType ? dto.otpType : OtpType.Login,
         },
       });
       // wait send message to user
@@ -74,7 +75,7 @@ export class AuthService {
       throw error;
     }
   }
-
+  
   async findUserByPhone(phoneNumber) {
     try {
       return this.prisma.user.findFirst({
@@ -113,7 +114,7 @@ export class AuthService {
         data: {
           password: password,
           otpDate: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-          otpType: dto.otpType,
+          otpType: OtpTypeStringToEnumHelper(dto.otpType.toString) in OtpType ? OtpTypeStringToEnumHelper(dto.otpType.toString) : OtpType.Login,
         },
       });
       return {
@@ -200,16 +201,17 @@ export class AuthService {
           },
           status: true,
         };
-        if (user.otpType == OtpType.Payment) {
-          await this.cacheManager.set(`${user.id.toString()}`,PaymentPermission.CanPay, 1 * 60 * 1000);
-          return {
-            result: {
-              otpType: user.otpType,
-            },
-            status: true,
-          };
-        }
       }
+      if (user.otpType == OtpType.Payment) {
+        await this.cacheManager.set(`${user.id.toString()}`,PaymentPermission.CanPay, 1 * 60 * 1000);
+        return {
+          result: {
+            otpType: user.otpType,
+          },
+          status: true,
+        };
+      }
+      
     } catch (e) {
       return {
         result: false,
@@ -339,4 +341,7 @@ export class AuthService {
     });
     return user;
   }
+}
+function isOtpType(value: any): value is OtpType {
+  return value in OtpType;
 }

@@ -48,7 +48,7 @@ db.user.insertOne({
 
 
 db.wallet.insertOne({
-  "userId": ObjectId("646725dd43008878e88699c5"),
+  "userId": ObjectId("647c28197632c84a10994446"),
   "amount": 1000000000,
   "walletCode": "100000",
   "walletType": "MASTER",
