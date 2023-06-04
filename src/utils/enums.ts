@@ -14,6 +14,7 @@ export enum Role {
 export enum OtpType {
   Login = 'Login',
   RessetPass = 'RessetPass',
+  Payment = 'Payment',
 }
 
 export enum OrderType {
@@ -45,6 +46,9 @@ export enum OrderType {
   VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT = 'VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT',
   DOCUMENT_STATUS_BY_WALLET = 'DOCUMENT_STATUS_BY_WALLET',
   DOCUMENT_STATUS_BY_CREDIT = 'DOCUMENT_STATUS_BY_CREDIT',
+  BILL_AMOUNT_INQUIRY_BY_CREDIT = "BILL_AMOUNT_INQUIRY_BY_CREDIT",
+  BILL_PAYMENT_BY_CREDIT = "BILL_PAYMENT_BY_CREDIT",
+  BILL_PAYMENT_BY_WALLET = "BILL_PAYMENT_BY_WALLET",
 }
 export enum CashbackState {
   PENDING = 'PENDING', // is pernding to cash back
@@ -68,4 +72,8 @@ export enum NajiType {
 export enum PlateType {
   MOTOR = 'MOTOR',
   CAR = 'CAR',
+}
+export enum PaymentPermission{
+  CanPay ="permit-transaction",
+  NotCanPay ="deny-transaction"
 }

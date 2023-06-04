@@ -10,13 +10,11 @@ import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { SmsService } from 'src/utils/sms_handler';
-import { ConfigService } from '@nestjs/config';
+import { BillService } from './bill.service';
 
 @Module({
-  // imports: [CacheModule.register()],
-  controllers: [ServicesController],
+  controllers: [],
   providers: [
-    ServicesService,
     TransactionsService,
     WalletService,
     OrderMakerService,
@@ -27,8 +25,8 @@ import { ConfigService } from '@nestjs/config';
     OrderMakerService,
     TransactionsService,
     AuthService,
-    ServicesService,JwtService,SmsService
+    JwtService,SmsService , BillService
   ],
-  exports: [ServicesService],
+  exports: [BillService],
 })
-export class ServicesModule {}
+export class BillModule {}

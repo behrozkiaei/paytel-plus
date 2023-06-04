@@ -23,6 +23,7 @@ export class OrderMakerService {
               ? OrderType.internetByWallet
               : OrderType.internetByCredit,
             userId: user.id,
+            commission : 1000,
             isPaid: false,
             subTitle: dto.mobile,
             date: date,
@@ -49,6 +50,7 @@ export class OrderMakerService {
               : OrderType.internetByCredit,
             userId: user.id,
             isPaid: false,
+            commission : 1000,
             subTitle: payload.mobile,
             date: date,
             payload: JSON.stringify({ ...payload, order_id: order_id }),
@@ -90,13 +92,13 @@ export class OrderMakerService {
       case OrderType.DOCUMENT_STATUS_BY_WALLET:
       case OrderType.DOCUMENT_STATUS_BY_CREDIT:
         const najiPayload: any = dto;
-        console.log(dto)
         const najiOrder = await this.prisma.order.create({
           data: {
             title: 'استعلام راهور',
-            amount: +najiPayload.price ?? 0,
+            amount: +najiPayload.price ?? 52000,
             type: dto.type,
             userId: user.id,
+            commission : 0,
             isPaid: false,
             subTitle: 'استعلام',
             date: date,
@@ -111,13 +113,55 @@ export class OrderMakerService {
             },
           },
         });
-        const updatedNajiOrder = await this.prisma.order.findUnique({
-          where: { id: najiOrder.id },
+
+        return najiOrder;
+      case OrderType.BILL_AMOUNT_INQUIRY_BY_CREDIT:
+        const billAmountInquiryPayload: any = dto;
+        const billOrder = await this.prisma.order.create({
+          data: {
+            title: 'استعلام راهور',
+            amount: 500,
+            type: dto.type,
+            userId: user.id,
+            commission : 0,
+            isPaid: false,
+            subTitle: ' استعلام قبض'  ,
+            date: date,
+            payload: JSON.stringify({ ...billAmountInquiryPayload }),
+          },
+        });
+        const billOrderDesc = await this.prisma.order.findUnique({
+          where: { id: billOrder.id },
           include: {
             desc: true,
           },
         });
-        return updatedNajiOrder;
+        return billOrderDesc;
+        case OrderType.BILL_PAYMENT_BY_CREDIT:
+        case OrderType.BILL_PAYMENT_BY_WALLET:
+          const billPay = await this.prisma.order.create({
+            data: {
+              title: 'استعلام راهور',
+              amount: dto.amount,
+              type: dto.type,
+              userId: user.id,
+              commission : type == OrderType.BILL_PAYMENT_BY_CREDIT ? 1000 : 0,
+              isPaid: false,
+              subTitle: ' استعلام قبض'  ,
+              date: date,
+              payload: JSON.stringify({ ...dto }),
+              desc: {
+                create: [
+                  {
+                    key: 'کد رهگیری',
+                    value: order_id,
+                  },
+                ],
+              },
+            },
+          });
+
+          return billPay;
     }
   }
 }

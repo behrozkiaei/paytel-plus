@@ -22,12 +22,11 @@ paytel-admin:5924a1212XYZ
 const objectId = ObjectId("63f9f796c50600d35beb811f");
 
 db.user.insertOne({
-  "_id": objectId,
-  "mobile": "09116264382",
+  "mobile": "0999999999",
   "role": "LEVEL1",
   "active": true,
   "verified": false,
-  "phone": "09116264382",
+  "phone": "0999999999",
   "createdAt": {
     "$date": {
       "$numberLong": "1676926078900"
@@ -46,22 +45,24 @@ db.user.insertOne({
   "name": "behroz",
   "username": "",
 })
+
+
 db.wallet.insertOne({
-  "userId": objectId,
-  "amount": 50382665,
+  "userId": ObjectId("646725dd43008878e88699c5"),
+  "amount": 1000000000,
   "walletCode": "100000",
   "walletType": "MASTER",
+  "date": "1401/12/02 00:17:58",
   "createdAt": {
     "$date": {
-      "$numberLong": "1676926079030"
+      "$numberLong": "1676926078900"
     }
   },
   "updatedAt": {
     "$date": {
-      "$numberLong": "1679235982593"
+      "$numberLong": "1677505523388"
     }
   },
-  "date": "1401/12/02 00:17:58"
 })
 
 db.revokeRolesFromUser("test", [{ role: "readWrite", db: "paytel" }])

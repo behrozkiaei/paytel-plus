@@ -123,13 +123,40 @@ export class WalletService {
   }
 
   async transferMoneyWallet2Wallet(
-    sourceWalletId,
-    destWalletId,
+    sourceWalletId  = null,
+    destWalletId = null, 
     amount,
     desc = '',
+    orderIdIsPaid = null
   ) {
     const date = moment().format('jYYYY/jMM/jDD HH:mm:ss');
     try {
+
+      if(sourceWalletId == null || destWalletId==null){
+        const masterWallet = await this.prisma.wallet.findFirst({
+          where: {
+            walletType: 'MASTER',
+          },
+          select: {
+            id: true,
+            amount: true,
+            User: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        });
+        if (!masterWallet) {
+          throw new ForbiddenException('Master wallet not founded');
+        }
+        if(sourceWalletId ==null){
+          sourceWalletId = masterWallet.id
+        }
+        if(destWalletId ==null){
+          destWalletId = masterWallet.id
+        }
+      }
       const sourceWallet = await this.prisma.wallet.findUnique({
         where: { id: sourceWalletId },
       });
@@ -138,14 +165,14 @@ export class WalletService {
         where: { id: destWalletId },
       });
       if (!destWallet) {
-        throw new Error('Dest wallet not founded');
+        throw new Error('ولت هدف پیدا نشد');
       }
       if (!sourceWallet) {
-        throw new Error('source Wallet  not founded');
+        throw new Error('ولت پیدا نشد');
       }
       // console.log(sourceWallet)
       if (+amount > +sourceWallet.amount) {
-        throw new ForbiddenException('Amount not enough');
+        throw new ForbiddenException('موجودی حساب شما کافی نیست');
       }
       await this.prisma.wallet.update({
         where: {
@@ -155,6 +182,7 @@ export class WalletService {
           amount: +sourceWallet.amount - +amount,
         },
       });
+
       await this.prisma.wallet.update({
         where: {
           id: destWalletId,
@@ -173,6 +201,14 @@ export class WalletService {
           description: desc,
         },
       });
+      if(orderIdIsPaid){
+        await this.prisma.order.update({
+          where: { id: orderIdIsPaid},
+          data: {
+            isPaid: true,
+          },
+        });
+      }
       return {
         status: true,
         result: null,
@@ -185,6 +221,8 @@ export class WalletService {
       };
     }
   }
+
+
   async transferByAdmin(dto: TransferDto) {
     const masterWallet = await this.prisma.wallet.findFirst({
       where: {
@@ -429,15 +467,16 @@ export class WalletService {
   ): Promise<INewResponseAPI<any>> {
     const resnum = Date.now().toString();
     // const config = await this.prisma.config.findFirst({})
-    console.log(11);
+    const order = await this.prisma.order.findUnique({where:{id:orderId}})
     try {
-      console.log(1);
       const wallet = await this.getWalletByUserId(customerId);
-      //get  payment link
-      console.log(13);
+      let debt = 0 ; 
+      if(+wallet.amount < 0 ){
+        debt = Math.abs(+wallet.amount)
+      }
       const data = JSON.stringify({
         merchant_id: this.config.get('MERCHANT_ID_ZARRINPAL'),
-        amount: +amount,
+        amount: (+amount) + (+order.commission)  + debt,
         callback_url: callback_url ? callback_url : `${this.config.get('SERVER_ADDRESS')}/transactions/callback`,
         description: ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
         metadata: { mobile: wallet.User.mobile },
@@ -462,7 +501,7 @@ export class WalletService {
         const transaction = await this.prisma.transaction.create({
           data: {
             destWalletId: wallet.id,
-            amount: +amount,
+            amount: +amount+1000,
             resnum: resnum,
             orderId:orderId,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),

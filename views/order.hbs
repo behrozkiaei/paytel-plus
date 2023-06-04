@@ -1,0 +1,46 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>صفحه فاکتور</title>
+    <link rel="stylesheet" href="../../public/assets/styles.css" />
+  </head>
+
+  <body>
+    <div class="recieptStyle">
+      <div class="container">
+        <div class="box">
+         {{#unless  isPaid}} 
+            <div class="row">
+              <div class="rowC">
+                <img src="../../public/assets/images/x-button.svg" />
+              </div>
+            </div>
+          {{/unless }}
+            
+            {{#if !isPaid  }}
+            <div class="row">
+              <div class="rowC">
+                <img src="../../public/assets/images/success.svg" />
+              </div>
+            </div>
+            {{/if}}
+
+
+           {{#each result.keyValue}}
+            <div class="row">
+                {{#each this}}
+                <div class="rowC">
+                    <strong>{{@key}}:</strong> {{this}}
+                </div>
+                {{/each}}
+            </div>
+            {{/each}}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

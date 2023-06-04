@@ -19,6 +19,7 @@ import { WatchService } from './watch.service';
 import { SocketGateway } from './websocket';
 import { PaymentRequestModule } from './bussiness-logic/payment-request/payment-request.module';
 import { NajiModule } from './bussiness-logic/naji/naji/naji.module';
+import { BillModule } from './bussiness-logic/bill/bill.module';
 
 const DEFAULT_ADMIN = {
   email: 'admin@example.com',
@@ -53,6 +54,7 @@ const authenticate = async (email: string, password: string) => {
     }),
     ServicesModule,
     PaymentRequestModule,
+    BillModule,
     AdminModule.createAdminAsync({
       useFactory: () => {
         // Note: Feel free to contribute to this documentation if you find a Nest-way of
@@ -246,6 +248,28 @@ const authenticate = async (email: string, password: string) => {
                   },
                 },
               },
+              // {
+              //   resource: { model: dmmf.modelMap.config, client: prisma },
+              //   options: {
+              //     sort: {
+              //       sortBy: 'updatedAt',
+              //       direction: 'desc',
+              //     },
+              //     actions: {
+              //       edit: {
+              //         before: async (request) => {
+              //           // console.log(request);
+              //           if (request.method === 'post') {
+              //             const { id, ...payload } = request.payload;
+              //             // console.log(payload);
+              //             request.payload = payload;
+              //           }
+              //           return request;
+              //         },
+              //       },
+              //     },
+              //   },
+              // },
             ],
           },
           auth: {

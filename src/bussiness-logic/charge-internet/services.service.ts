@@ -6,10 +6,15 @@ import {
 import { INewResponseAPI } from 'src/utils/interfaces/response-type';
 import { CACHE_MANAGER, Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { InternetProducts, internetPayloadForRequest } from 'src/utils/interfaces/internet-products-model';
+import {
+  InternetProducts,
+  internetPayloadForRequest,
+} from 'src/utils/interfaces/internet-products-model';
 import axios from 'axios';
 import { Cache } from 'cache-manager';
 import { chargeDto } from 'src/walllet/dto/internet.dto';
+import { responseKeyToFaKey, responseValueToFaKey } from './utils';
+import { ConfigService } from '@nestjs/config';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const moment = require('moment-jalaali');
@@ -17,6 +22,7 @@ const moment = require('moment-jalaali');
 export class ServicesService {
   constructor(
     private prisma: PrismaService,
+    private config :ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -31,7 +37,7 @@ export class ServicesService {
         if (response.code == '1') {
           const products = response.products.internet;
           await this.prisma.internetProduct.deleteMany({});
-          const productsToInsert= products?.map((pro) => {
+          const productsToInsert = products?.map((pro) => {
             pro.product_id = pro.id;
             delete pro.id;
             pro.date = moment().format('jYYYY/jMM/jDD HH:mm:ss');
@@ -39,53 +45,45 @@ export class ServicesService {
           });
           // console.log(productsToInsert);
           await this.prisma.internetProduct.createMany({
-            data : productsToInsert
+            data: productsToInsert,
           });
-          const productsToSend= products?.map((pro) => {
+          const productsToSend = products?.map((pro) => {
             pro.valueOperator = pro.operator;
             return pro;
           });
           const group = this.groupBy(productsToSend, 'internet_type');
           const finalGroup = [];
 
-          Object.keys(group).forEach(function(key) {
-            
-            let keyPersion  
-            if(key  == "hourly") {
-              keyPersion = "ساعتی";
-            }else 
-            if(key  == "daily") {
-              keyPersion = "روزانه";
-            }else
-            if(key  == "weekly") {
-              keyPersion = "هفتگی";
-            }else
-            if(key  == "monthly") {
-              keyPersion = "یکماهه";
-            }else
-            if(key  == "yearly") {
-              keyPersion = "سالیانه";
-            }else
-            if(key  == "amazing") {
-              keyPersion = "شگفتانه";
-            }else
-            if(key  == "other") {
-              keyPersion = "سایر";
-            }else{
-              keyPersion = "نامشخص";
-            } 
-            if(key != "hourly"){
-              
-              finalGroup.push({key:keyPersion,value: group[key]})
+          Object.keys(group).forEach(function (key) {
+            let keyPersion;
+            if (key == 'hourly') {
+              keyPersion = 'ساعتی';
+            } else if (key == 'daily') {
+              keyPersion = 'روزانه';
+            } else if (key == 'weekly') {
+              keyPersion = 'هفتگی';
+            } else if (key == 'monthly') {
+              keyPersion = 'یکماهه';
+            } else if (key == 'yearly') {
+              keyPersion = 'سالیانه';
+            } else if (key == 'amazing') {
+              keyPersion = 'شگفتانه';
+            } else if (key == 'other') {
+              keyPersion = 'سایر';
+            } else {
+              keyPersion = 'نامشخص';
+            }
+            if (key != 'hourly') {
+              finalGroup.push({ key: keyPersion, value: group[key] });
             }
             // console.log('Key : ' + this.translate(key) + ', Value : ' + group[key])
-          })
+          });
           // console.log(products);
           //insert new packages in the db
           await this.cacheManager.set(
             'internet',
             JSON.stringify(finalGroup),
-            6 * 60 * 60*1000,
+            6 * 60 * 60 * 1000,
           );
         }
         // await this.prisma.internetProduct.createMany({ data: products });
@@ -114,10 +112,10 @@ export class ServicesService {
     payload: any = {},
   ): Promise<any> {
     const data = JSON.stringify({
-      username: 'f7b126d28d271b425980e8caccad7cdc',
-      password: '5924a1212XYZ',
+      username: this.config.get("INAX_PASSWORD"),
+      password: this.config.get("INAX_PASSWORD"),
       method: method,
-      ...payload
+      ...payload,
     });
     console.log(payload);
     const config = {
@@ -152,93 +150,156 @@ export class ServicesService {
     );
 
   async buyInternet(orderId): Promise<INewResponseAPI<any>> {
-    const order =await this.prisma.order.findUnique({where:{id:orderId}});
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     // first save order and payload  base on wallet or credit
-    const data :InternetProducts = JSON.parse(order.payload);
-    const  payload :internetPayloadForRequest= {
+    const data: InternetProducts = JSON.parse(order.payload);
+    const payload: internetPayloadForRequest = {
       product_id: data.product_id,
       amount: data.amount,
       operator: data.operator,
       sim_type: data.sim_type,
       internet_type: data.internet_type,
       order_id: data.order_id,
-      mobile :data.mobile
-    }; 
-    try{
-      const res = await this.requestToServiceProvider('internet', {...payload});
-      if (res.code == '1') {
+      mobile: data.mobile,
+    };
+    try {
+      const res = await this.requestToServiceProvider('internet', {
+        ...payload,
+      });
+
+      if (res.code.toString() === '1' ) {
+        this.updateOrder(order.id, res, 'خرید بسته اینترنت');
         return {
           status: true,
-          result :{
-            ...res
-          }
+          result: {
+            ...res,
+            orderId : order.id
+          },
         };
-      }else{
-        throw Error(res.msg??"درخواست با خطا مواجه شد")
+      } else {
+        throw Error(res.msg ?? 'درخواست با خطا مواجه شد');
       }
-    }catch(e){
-      console.log(e)
-      return   {
+    } catch (e) {
+      console.log(e);
+      return {
         status: true,
-        message: e.message ?? "مشکل در برقراری سرویس"
-      }
+        message: e.message ?? 'مشکل در برقراری سرویس',
+      };
     }
   }
 
   async buyCharge(orderId): Promise<INewResponseAPI<any>> {
-    const order =await this.prisma.order.findUnique({where:{id:orderId}});
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
 
     // first save order and payload  base on wallet or credit
-    const  dto :ChargePayloadForDb = JSON.parse(order.payload); 
-    const payload  = {
-      operator:dto.operator,
-      amount: ((+dto.amount)/10).toString(),
+    const dto: ChargePayloadForDb = JSON.parse(order.payload);
+    const payload = {
+      operator: dto.operator,
+      amount: (+dto.amount / 10).toString(),
       mobile: dto.mobile,
-      charge_type: dto.charge_type ?? "normal",
+      charge_type: dto.charge_type ?? 'normal',
       order_id: dto.order_id,
-    }
-    console.log(payload)
-    try{
-      const res = await this.requestToServiceProvider('topup', {...payload});
+    };
+    console.log(payload);
+    try {
+      const res = await this.requestToServiceProvider('topup', { ...payload });
       console.log(res);
-      if (res.code == '1' || res.code == 1) {
+      if (res.code.toString() === '1') {
+        this.updateOrder(order.id, res, 'خرید  شارژ');
         return {
           status: true,
-          result :{
-            ...res
-          }
+          result: {
+            ...res,
+            orderId : order.id
+          },
         };
-      }else{
-        throw Error(res.msg ?? "درخواست با خطا مواجه شد")
+      } else {
+        throw Error(res.msg ?? 'درخواست با خطا مواجه شد');
       }
-    }catch(e){
-      console.log(e)
-      return   {
+    } catch (e) {
+      console.log(e);
+      return {
         status: false,
-        message: e.message ?? "مشکل در برقراری سرویس"
-      }
+        message: e.message ?? 'مشکل در برقراری سرویس',
+      };
     }
   }
 
-  translate( key ):string{
-    console.log(key)
-    switch(key){
-      case "hourly":
-        return "ساعتی";
-      case  "daily":
-        return "روزانه"; 
-      case "weekly":
-        return "هفتگی"; 
-      case "monthly":
-        return "یکماهه";
-      case "yearly":
-        return "سالیانه"; 
-      case  "amazing":
-        return "شگفت انگیز";
-      case  "other":
-        return "سایر";  
-      return "نامشخص";
-      break;
+  translate(key): string {
+    console.log(key);
+    switch (key) {
+      case 'hourly':
+        return 'ساعتی';
+      case 'daily':
+        return 'روزانه';
+      case 'weekly':
+        return 'هفتگی';
+      case 'monthly':
+        return 'یکماهه';
+      case 'yearly':
+        return 'سالیانه';
+      case 'amazing':
+        return 'شگفت انگیز';
+      case 'other':
+        return 'سایر';
+        return 'نامشخص';
+        break;
     }
+  }
+  async updateOrder(
+    orderId: string,
+    response: any,
+    title: string,
+  ): Promise<void> {
+    let keyValueObj = [];
+    if (!Array.isArray(response)) {
+      for (let key in response) {
+        keyValueObj.push({
+          key: responseKeyToFaKey(key),
+          value: responseValueToFaKey(key, response[key]),
+          orderId: orderId,
+          key_en: key,
+        });
+      }
+    }
+    let res: any;
+    if (Array.isArray(response)) {
+      for (let i = 0; i < response.length; i++) {
+        res = response[i];
+        for (let key in res) {
+          keyValueObj.push({
+            key: responseKeyToFaKey(key),
+            value: responseValueToFaKey(key, res[key]),
+            orderId: orderId,
+            key_en: key,
+          });
+        }
+        keyValueObj.push({
+          key: 'separator',
+          value: 'separator',
+          orderId: orderId,
+        });
+      }
+    }
+
+    await this.prisma.keyValue.createMany({
+      data: keyValueObj,
+    });
+    await this.prisma.order.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        isPaid: true,
+        title: title ? title : undefined,
+        datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+        data1: JSON.stringify(response),
+      },
+    });
+    return;
   }
 }

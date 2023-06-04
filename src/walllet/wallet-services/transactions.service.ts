@@ -304,7 +304,9 @@ export class TransactionsService {
             wallet: true,
             order: {
               include: { desc: true },
+              
             },
+            
           },
         });
         if (!transaction)
@@ -317,10 +319,17 @@ export class TransactionsService {
         if (transaction.isPaid == true) {
           return { result: {}, status: false, message: 'تراکنش منقضی شده است' };
         }
-
+        let debt = 0 ; 
+        if(+transaction.wallet.amount < 0 ){
+          debt = Math.abs(+transaction.wallet.amount)
+        }
+        let commission = 0;
+        if(transaction.order.commission > 0 ){
+          commission = +transaction.order.commission
+        }
         const data = JSON.stringify({
           merchant_id: 'da506228-c225-431c-91ff-ddc4abe8b995',
-          amount: transaction.amount,
+          amount: (+transaction.amount) + (debt) + commission ,
           authority: transaction.securePan,
         });
 
@@ -341,6 +350,7 @@ export class TransactionsService {
           response?.data?.data?.code == 100 ||
           response?.data?.data?.code == 101
         ) {
+
           await this.updateTransaction(transaction.id, {
             isPaid: true,
             card_pan: response.data.data.card_pan,
@@ -348,9 +358,23 @@ export class TransactionsService {
             fee_type: response.data.data.fee_type,
             fee: response.data.data.fee,
           });
+          if(debt > 0 ){
+            await this.prisma.wallet.update({
+              where :{id : transaction.wallet.id},
+              data :{
+                amount : 0
+              }
+            })
+          }
           const res = await this.transferBaseOnOrderAndTransaction(
             transaction.order.id,
           );
+           await this.prisma.keyValue.createMany({
+            data :[
+              {key :"پرداخت" , value : "کارت بانکی" ,orderId:transaction.order.id },
+              {key :"شناسه تراکنش" , value : response.data.data.ref_id ,orderId:transaction.order.id },
+            ]
+          })
           if (!res.status) {
             throw Error('increase error');
           }
@@ -379,6 +403,7 @@ export class TransactionsService {
           if (transaction.order?.type == OrderType.chargeByCredit) {
             return await this.buyChargeAndWalletTransfer(transaction.order.id);
           }
+
           const order = await this.prisma.order.findUnique({
             where: { id: transaction.order.id },
             include: {
@@ -429,7 +454,7 @@ export class TransactionsService {
       if (type == OrderType.internetByCredit) {
         const transaction = await this.walletService.createTransaction(
           user.id,
-          product.amount,
+          product.amount ,
           order.id,
         );
         return { ...transaction };
@@ -525,15 +550,11 @@ export class TransactionsService {
                 key: 'موبایل',
                 value: dto.mobile,
               },
-              {
-                key: 'شماره پیگیری',
-                value: buyCharge.result.ref_code.toString(),
-              },
             ],
           },
         },
       });
-      return { ...buyCharge };
+      return { ...buyCharge  };
     } catch (e) {
       return {
         status: false,
@@ -582,29 +603,9 @@ export class TransactionsService {
             trans_id: buyInternet.result.trans_id.toString(),
             ref: buyInternet.result.ref_code.toString(),
           }),
-          desc: {
-            create: [
-              {
-                key: 'نام بسته',
-                value: dto.name,
-              },
-              {
-                key: 'تاریخ',
-                value: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-              },
-              {
-                key: 'شماره',
-                value: dto.mobile,
-              },
-              {
-                key: 'شماره پیگیری',
-                value: buyInternet.result.ref_code.toString(),
-              },
-            ],
-          },
         },
       });
-      return { ...buyInternet };
+      return { ...buyInternet ,orderId : order.id};
     } catch (e) {
       console.log(e);
       return {
@@ -718,10 +719,11 @@ export class TransactionsService {
       if (!masterWallet) {
         throw new Error('err');
       }
+      
       const transfer = await this.walletService.transferMoneyWallet2Wallet(
         masterWallet.id,
         order.user.Wallet.id,
-        transaction.amount,
+        order.amount ,
         'تراکنش بانکی',
       );
       if (!transfer.status) {
@@ -737,6 +739,36 @@ export class TransactionsService {
     }
   }
   async getOrderById(user, id) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: {
+          id: id,
+        },
+        include: {
+          desc: true,
+          user: true,
+        },
+      });
+
+      if (order) {
+        return {
+          result: order,
+          status: true,
+        };
+      } else {
+        return {
+          status: false,
+          message: 'not founded',
+        };
+      }
+    } catch (error) {
+      return {
+        status: false,
+      };
+    }
+  }
+
+  async getOrderByIdnoAuth(id:string) {
     try {
       const order = await this.prisma.order.findUnique({
         where: {

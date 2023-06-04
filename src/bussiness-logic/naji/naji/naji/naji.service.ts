@@ -1,4 +1,4 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   digitsFaToEn,
@@ -31,12 +31,16 @@ import {
   DriverNajiDto,
   MobileAndNationalDto,
   MobileDto,
-  NationalCodeDto,
   NegeticvePoint,
   VerifyUserNajiDto,
-  plateDto,
+  plateDto
 } from './dto/naji.dto';
-import { error } from 'console';
+import {
+  licensStatus,
+  plateChartoDigit,
+  responseKeyToFaKey,
+  responseValueToFaKey
+} from './util/responseTofa';
 const moment = require('moment-jalaali');
 @Injectable()
 export class NajiService {
@@ -140,7 +144,7 @@ export class NajiService {
     try {
       const mobileEn = toEn(phoneNumberNormalizer(dto.mobile, '0'));
       const configData = await this.getNajiToken();
-      console.log(configData)
+      console.log(configData);
       if (!configData.naji_token) {
         throw new Error('Naji havnt access token');
       }
@@ -383,7 +387,7 @@ export class NajiService {
       );
 
       response.map((element) => {
-        element.rahvarStatus = this.licensStatus(element.rahvarStatus);
+        element.rahvarStatus = licensStatus(element.rahvarStatus);
         return element;
       });
 
@@ -956,154 +960,9 @@ export class NajiService {
     }
   }
 
-  //   internal
 
-  async createInquiry(
-    user,
-    data,
-    type,
-    orderId,
-    najiId = null,
-    plateId = null,
-  ) {
-    try {
-      const inquiry = await this.prisma.najiInquiryResult.create({
-        data: {
-          date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-          type: type,
-          data: data,
-          orderId: orderId,
-          userId: user.id,
-          najiId: najiId ?? undefined,
-          plateId: plateId ?? undefined,
-        },
-      });
-      return {
-        status: true,
-        result: inquiry,
-      };
-    } catch (e) {
-      console.log(e);
-      return {
-        status: false,
-      };
-    }
-  }
 
-  licensStatus(statusCode) {
-    switch (statusCode) {
-      case 21:
-        return 'قبول آزمون تئوری';
-        break;
-      case 31:
-        return 'قبول آزمون عملی';
-        break;
-      case 41:
-        return 'تائید دفتر/آموزشگاه';
-        break;
-      case 61:
-        return 'قبول آزمون فنی';
-        break;
-      case 71:
-        return 'قبول آزمون تپه';
-        break;
-      case 101:
-        return 'رد شده کاردان فنی';
-        break;
-      case 111:
-        return 'منوط به نظر کاردان فنی';
-        break;
-      case 22:
-        return 'تایید شده راهور';
-        break;
-      case 32:
-        return 'رد شده راهور';
-        break;
-      case 62:
-        return 'چاپ شده';
-        break;
-      case 72:
-        return 'نقش چاپ / عکس';
-        break;
-      case 102:
-        return 'اسکن شده ناجی پاس';
-        break;
-      case 172:
-        return 'پیدا شده';
-        break;
-      case 182:
-        return 'برگشتی از پست';
-        break;
-      case 262:
-        return 'چاپ مجدد';
-        break;
-      case 272:
-        return 'چاپ مجدد راهور';
-        break;
-      case 282:
-        return 'چاپ ویژه';
-        break;
-
-      default:
-        break;
-    }
-  }
-  plateChartoDigit(char) {
-    switch (char) {
-      case 'ب':
-        return '02';
-        break;
-      case 'ت':
-        return '03';
-        break;
-      case 'ج':
-        return '04';
-        break;
-      case 'د':
-        return '05';
-        break;
-      case 'س':
-        return '06';
-        break;
-      case 'ص':
-        return '07';
-        break;
-      case 'ط':
-        return '08';
-        break;
-      case 'ع':
-        return '09';
-        break;
-      case 'ق':
-        return '10';
-        break;
-      case 'ل':
-        return '11';
-        break;
-      case 'م':
-        return '12';
-        break;
-      case 'ن':
-        return '13';
-        break;
-      case 'و':
-        return '14';
-        break;
-      case 'ه':
-        return '15';
-        break;
-      case 'ی':
-        return '16';
-        break;
-      case 'ژ':
-        return '19';
-        break;
-
-      default:
-        break;
-    }
-  }
-
+  
   async addPlate(
     dto: plateDto | AggregateViolationReportWhitoutRegisterationDto,
     najiId: string,
@@ -1111,7 +970,7 @@ export class NajiService {
     try {
       let license;
       if (dto.type == PlateType.CAR) {
-        const charDigit = this.plateChartoDigit(dto.charPart);
+        const charDigit = plateChartoDigit(dto.charPart);
         license = `${dto.countryPart}${charDigit}${dto.firstPart}${dto.secondPart}`;
       }
       if (dto.type == PlateType.MOTOR) {
@@ -1150,11 +1009,10 @@ export class NajiService {
               id: user.id,
             },
           },
-          
         },
-        include:{
-naji:true
-        }
+        include: {
+          naji: true,
+        },
       });
       return {
         status: true,
@@ -1170,14 +1028,6 @@ naji:true
   }
   async removePlate(user, plateId) {
     try {
-      //if there is not any related inquiry
-      const inquiry = await this.getPlatesInquiry(plateId);
-      if (inquiry.status && inquiry.result?.length > 0) {
-        return {
-          status: false,
-          message: 'این پلاک قابل حذف نیست',
-        };
-      }
       await this.prisma.plate.delete({
         where: {
           id: plateId,
@@ -1188,24 +1038,7 @@ naji:true
       };
     } catch {}
   }
-  async getPlatesInquiry(plateId) {
-    try {
-      const paltesInquiry = await this.prisma.najiInquiryResult.findMany({
-        where: {
-          plateId: plateId,
-        },
-      });
-      return {
-        status: true,
-        result: paltesInquiry,
-      };
-    } catch (e) {
-      console.log(e);
-      return {
-        status: false,
-      };
-    }
-  }
+
   async getPlateById(id) {
     try {
       let plate = await this.prisma.plate.findUnique({
@@ -1292,7 +1125,7 @@ naji:true
     try {
       let license = '';
       if (plate.type == PlateType.CAR) {
-        const charDigit = this.plateChartoDigit(plate.char);
+        const charDigit = plateChartoDigit(plate.char);
         license = `${plate.countryPart}${charDigit}${plate.firstPart}${plate.secondPart}`;
       }
       if (plate.type == PlateType.MOTOR) {
@@ -1337,7 +1170,13 @@ naji:true
     return res;
   }
   async handleCallback(query) {
-    await this.transactionService.handleCallback(query);
+   const callbackers =  await this.transactionService.handleCallback(query);
+    if(!callbackers.status ){
+      return {
+        status : false,
+        message : "transaction verify failed"
+      }
+    }
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         securePan: query.Authority,
@@ -1347,14 +1186,14 @@ naji:true
         order: true,
       },
     });
-    const dto = qs.parse(transaction.order.payload);
+    const dto = JSON.parse(transaction.order.payload);
     const user = await this.prisma.user.findUnique({
       where: {
         id: transaction.order.userId,
       },
     });
-    let res:INewResponseAPI<najiResponseId> ;
-    switch (dto.type) {
+    let res: INewResponseAPI<najiResponseId>;
+    switch (transaction.order.type) {
       case OrderType.ACTIVE_PLATES_BY_CREDIT:
         res = await this.activePlate(
           user,
@@ -1407,7 +1246,7 @@ naji:true
           user,
           dto as unknown as DriverNajiDto,
           transaction.order.id,
-        ) ;
+        );
         break;
       case OrderType.PASSPORT_STATUS_BY_CREDIT:
         res = await this.getPassportStatus(
@@ -1436,19 +1275,22 @@ naji:true
         break;
     }
     const token = await this.authService.sign5MinToken(user.id);
-    return { url: `${this.config.get("FRONT_SERVER")}/id=${res.result.order.id}&token=${token}`, statusCode: 302 };
-
+    return {
+      url: `${this.config.get('FRONT_SERVER')}/id=${
+        res.result.order.id
+      }&token=${token}`,
+      RedirectURL: `${this.config.get('FRONT_SERVER')}/id=${
+        res.result.order.id
+      }&token=${token}`,
+      statusCode: 302,
+    };
   }
-  async registerUserAndPlate(
+  async registerNajiAndPlate(
+    user:any,
     dto: AggregateViolationReportWhitoutRegisterationDto,
+    
   ) {
-    const mobileEn = toEn(phoneNumberNormalizer(dto.mobile, '0'));
-    let user = await this.authService.findUserByPhone(dto.mobile);
-    if (!user) {
-      user = await this.authService.createWalletIfUserNotExist(mobileEn);
-    }
     const configData = await this.getNajiToken();
-
     const najiUser = await this.prisma.najiUser.create({
       data: {
         userId: user.id,
@@ -1460,11 +1302,11 @@ naji:true
     if (!res.status) {
       throw new Error('not added plate');
     }
-    const plate = await this.getPlateById(res.result.id);
-    if (!plate || !plate.status) {
+    const resPlate = await this.getPlateById(res.result.id);
+    if (!resPlate || !resPlate.status) {
       throw new Error('Plate not exist');
     }
-    return { user, plate: plate.result };
+    return { plate  : resPlate.result };
   }
 
   async getMyNajiUser(user) {
@@ -1564,78 +1406,9 @@ naji:true
       };
     }
   }
-  async getAllInquiryRes(
-    user,
-    page: string,
-    size: string,
-  ): Promise<INewResponseAPI<any>> {
-    try {
-      const myInquiryCount = await this.prisma.najiInquiryResult.aggregate({
-        where: {
-          userId: user.id,
-        },
-        _count: {
-          userId: true,
-        },
-      });
+ 
 
-      const myInquiry = await this.prisma.najiInquiryResult.findMany({
-        where: {
-          userId: user.id,
-        },
-        include: {
-          order: true,
-          plate: true,
-          naji: true,
-        },
-        take: +size ?? 10,
-        skip: +page ?? 0,
-        orderBy: {
-          id: 'desc',
-        },
-      });
-      return {
-        status: true,
-        result: {
-          myInquiry,
-          count: myInquiryCount._count,
-        },
-      };
-    } catch (error) {
-      console.log(error);
-      return {
-        status: false,
-        message: 'error ',
-      };
-    }
-  }
-
-  async getInquiryByIdRes(user, id): Promise<INewResponseAPI<any>> {
-    try {
-      const myInquiry = await this.prisma.najiInquiryResult.findUnique({
-        where: {
-          id: id,
-        },
-        include: {
-          order: true,
-          plate: true,
-          naji: true,
-        },
-      });
-      return {
-        status: true,
-        result: {
-          ...myInquiry,
-        },
-      };
-    } catch (error) {
-      console.log(error);
-      return {
-        status: false,
-        message: 'error ',
-      };
-    }
-  }
+  
   async updateOrder(
     orderId: string,
     response: any,
@@ -1645,8 +1418,8 @@ naji:true
     if (!Array.isArray(response)) {
       for (let key in response) {
         keyValueObj.push({
-          key: key,
-          value: response[key],
+          key: responseKeyToFaKey(key),
+          value: responseValueToFaKey(key, response[key]),
           orderId: orderId,
           key_en: key,
         });
@@ -1654,14 +1427,17 @@ naji:true
     }
     let res: any;
     if (Array.isArray(response)) {
-      for (let i = 0; i < response.length; i++) res = response[i];
-      for (let key in res) {
-        keyValueObj.push({
-          key: key,
-          value: res[key],
-          orderId: orderId,
-          key_en: key,
-        });
+      for (let i = 0; i < response.length; i++) {
+        
+        res = response[i];
+        for (let key in res) {
+          keyValueObj.push({
+            key: responseKeyToFaKey(key),
+            value: responseValueToFaKey(key, res[key]),
+            orderId: orderId,
+            key_en: key,
+          });
+        }
         keyValueObj.push({
           key: 'separator',
           value: 'separator',

@@ -13,7 +13,7 @@ import {
 
 import * as bcrypt from 'bcrypt';
 import { Cache } from 'cache-manager';
-import { OtpType } from 'src/utils/enums';
+import { OtpType, PaymentPermission } from 'src/utils/enums';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { toEn } from '../utils/toEn';
@@ -192,6 +192,7 @@ export class AuthService {
       }
       if (user.otpType == OtpType.Login) {
         const token = await this.signToken(user.id);
+        await this.cacheManager.set(`${user.id.toString()}`,PaymentPermission.CanPay, 1 * 60 * 1000);
         return {
           result: {
             otpType: user.otpType,
@@ -199,6 +200,15 @@ export class AuthService {
           },
           status: true,
         };
+        if (user.otpType == OtpType.Payment) {
+          await this.cacheManager.set(`${user.id.toString()}`,PaymentPermission.CanPay, 1 * 60 * 1000);
+          return {
+            result: {
+              otpType: user.otpType,
+            },
+            status: true,
+          };
+        }
       }
     } catch (e) {
       return {

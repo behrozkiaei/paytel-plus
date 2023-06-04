@@ -1,7 +1,7 @@
 import { WalletService } from '../wallet-services/wallet.service';
 /* eslint-disable prettier/prettier */
 import { Controller } from '@nestjs/common';
-import { Body, Get, Post, Query, Render } from '@nestjs/common/decorators';
+import { Body, Get, Param, Query, Render } from '@nestjs/common/decorators';
 import { ApiTags } from '@nestjs/swagger';
 import { response } from 'express';
 import { TransactionsService } from 'src/walllet/wallet-services/transactions.service';
@@ -17,9 +17,14 @@ export class CallbackController {
     return this.transactionService.handleCallback(query);
   }
 
-  // @Get("callback-test")
-  // @Render('index')
-  // callbacktest(@Query() query :any) {
-  //     return  this.transactionService.handleCallbackTest();
-  // }
+  @Get("order-by-id")
+  getOrderById(@Param("id") id :string) {
+      return  this.transactionService.getOrderByIdnoAuth(id);
+  }
+  @Get('order-page')
+  @Render('order')
+  async getOrderPage(@Param("id") id :string) {
+    const res = await   this.transactionService.getOrderByIdnoAuth(id);
+    return res.result
+  }
 }

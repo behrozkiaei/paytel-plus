@@ -276,27 +276,36 @@ export class NajiController {
   @Post('violation-aggregate-without-registeration')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   async getAggregateViolationReportWhitoutRegisteration(
+    @User() user: any,
     @Body() dto: AggregateViolationReportWhitoutRegisterationDto,
   ): Promise<INewResponseAPI<any>> {
-    const { user, plate } = await this.najiService.registerUserAndPlate(dto);
-    const price = this.najiService.getServicePrice(
-      NajiType.VIOLATION_AGGREGATE_NO_AUTH,
-    );
-    const order = await this.najiService.makeorder(
-      {
-        ...dto,
-        plateId: plate.id,
-        price
+    try{
+
+      const res = await this.najiService.registerNajiAndPlate(user ,dto);
+      const price = this.najiService.getServicePrice(
+        NajiType.VIOLATION_AGGREGATE_NO_AUTH,
+        );
+        const order = await this.najiService.makeorder(
+          {
+            ...dto,
+            plateId: res.plate.id,
+            price
       },
       OrderType.VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT ,
       user,
-    );
-    const transaction = await this.najiService.createNajiTransaction(
-      user.id,
-      order.id,
-      price,
-    );
-    return transaction;
+      );
+      const transaction = await this.najiService.createNajiTransaction(
+        user.id,
+        order.id,
+        price,
+        );
+        return transaction;
+      }catch(e){
+        return{
+          status:false,
+          message:e.message
+        }
+      }
   }
 
   @Post('document-status')
@@ -375,14 +384,7 @@ export class NajiController {
   ): Promise<INewResponseAPI<any>> {
     return this.najiService.removePlate(user, id);
   }
-  @Post('plate-inquiry-result')
-  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  getPlateInquiryResult(
-    @User() user: any,
-    @Body() dto: palteIdDto,
-  ): Promise<INewResponseAPI<any>> {
-    return this.najiService.getPlatesInquiry(dto.plateId);
-  }
+
   @Post('plate-by-info')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   getPlateByInfo(
@@ -391,22 +393,7 @@ export class NajiController {
   ): Promise<INewResponseAPI<any>> {
     return this.najiService.getPlateByInfo(user, dto);
   }
-  @Get('my-inquiry-result')
-  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  getAllInquiry(
-    @User() user: any,
-    @Param('page') page?: string,
-    @Param('size') size?: string,
-  ): Promise<INewResponseAPI<any>> {
-    return this.najiService.getAllInquiryRes(user, page, size);
-  }
-  @Get('my-inquiry-result-by-id')
-  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  getInquiryById(
-    @User() user: any,
-    @Param('id') id?: string,
-  ): Promise<INewResponseAPI<any>> {
-    return this.najiService.getInquiryByIdRes(user, id);
-  }
+
+
  
 }
