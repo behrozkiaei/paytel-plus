@@ -221,7 +221,8 @@ export class BillService {
         type == OrderType.BILL_PAYMENT_BY_WALLET &&
         res.ref_code
       ) {
-        await this.walletService.decreaseUserWallet(
+        await this.walletService.transferMoneyWallet2Wallet(
+          null,
           user.Wallet.id,
           inquiry.result.amount,
         );
