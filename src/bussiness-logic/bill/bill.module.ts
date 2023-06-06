@@ -8,9 +8,11 @@ import { TransactionsService } from 'src/walllet/wallet-services/transactions.se
 import { WalletService } from 'src/walllet/wallet-services/wallet.service';
 import { BillService } from './bill.service';
 import { ServicesService } from '../charge-internet/services.service';
+import { BillAuthController } from './bill.controller';
+import { BillNoAuthController } from './bill-no-auth.controller';
 
 @Module({
-  controllers: [],
+  controllers: [BillAuthController,BillNoAuthController],
   providers: [
     TransactionsService,
     WalletService,

@@ -9,7 +9,7 @@ import { redirectUrl } from 'src/utils/interfaces/bill.interfaces';
 
 @ApiTags("Bill no Auth auth services Api's")
 @Controller('bill-no-auth')
-export class BillAuthAuthController {
+export class BillNoAuthController {
   constructor(
     private billService: BillService,
     private walletService: WalletService,

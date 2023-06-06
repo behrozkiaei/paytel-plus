@@ -21,6 +21,7 @@ import { PaymentRequestModule } from './bussiness-logic/payment-request/payment-
 import { NajiModule } from './bussiness-logic/naji/naji/naji.module';
 import { BillModule } from './bussiness-logic/bill/bill.module';
 
+
 const DEFAULT_ADMIN = {
   email: 'admin@example.com',
   password: 'password',
@@ -57,11 +58,7 @@ const authenticate = async (email: string, password: string) => {
     BillModule,
     AdminModule.createAdminAsync({
       useFactory: () => {
-        // Note: Feel free to contribute to this documentation if you find a Nest-way of
-        // injecting PrismaService into AdminJS module
         const prisma = new PrismaService();
-        // `_baseDmmf` contains necessary Model metadata but it is a private method
-        // so it isn't included in PrismaClient type
         const dmmf = (prisma as any)._baseDmmf as DMMFClass;
         return {
           adminJsOptions: {
