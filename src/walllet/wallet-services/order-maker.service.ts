@@ -119,15 +119,23 @@ export class OrderMakerService {
         const billAmountInquiryPayload: any = dto;
         const billOrder = await this.prisma.order.create({
           data: {
-            title: 'استعلام راهور',
+            title: 'استعلام قبض',
             amount: 500,
-            type: dto.type,
+            type: OrderType.BILL_AMOUNT_INQUIRY_BY_CREDIT,
             userId: user.id,
             commission : 0,
             isPaid: false,
-            subTitle: ' استعلام قبض'  ,
+            subTitle: 'استعلام قبض'  ,
             date: date,
             payload: JSON.stringify({ ...billAmountInquiryPayload }),
+            desc: {
+              create: [
+                {
+                  key: 'کد رهگیری',
+                  value: order_id,
+                },
+              ],
+            },
           },
         });
         const billOrderDesc = await this.prisma.order.findUnique({
@@ -141,7 +149,7 @@ export class OrderMakerService {
         case OrderType.BILL_PAYMENT_BY_WALLET:
           const billPay = await this.prisma.order.create({
             data: {
-              title: 'استعلام راهور',
+              title: 'استعلام قبض',
               amount: dto.amount,
               type: dto.type,
               userId: user.id,

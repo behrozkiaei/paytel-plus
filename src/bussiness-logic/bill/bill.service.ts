@@ -5,22 +5,22 @@ import { AuthService } from 'src/auth/auth.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OrderType } from 'src/utils/enums';
 import {
-    BillInquiryRepoInterface,
-    BillInquiryResponseRepoInterface,
-    BillPaymentRepoPayload,
-    BillPaymentResponse,
-    CheckBillRepoInterface,
-    CheckBillRepoResponseInterface,
-    PaymnetRemoteMethod,
-    Paytype
+  BillInquiryRepoInterface,
+  BillInquiryResponseRepoInterface,
+  BillPaymentRepoPayload,
+  BillPaymentResponse,
+  CheckBillRepoInterface,
+  CheckBillRepoResponseInterface,
+  PaymnetRemoteMethod,
+  Paytype,
 } from 'src/utils/interfaces/bill.interfaces';
 import { INewResponseAPI } from 'src/utils/interfaces/response-type';
 import { OrderMakerService } from 'src/walllet/wallet-services/order-maker.service';
 import { TransactionsService } from 'src/walllet/wallet-services/transactions.service';
 import { WalletService } from 'src/walllet/wallet-services/wallet.service';
 import {
-    responseKeyToFaKey,
-    responseValueToFaKey,
+  responseKeyToFaKey,
+  responseValueToFaKey,
 } from '../charge-internet/utils';
 import { BillAmountInquiryDto, PayBillAuthed } from './dto/bill.dto';
 import { PayBill } from './dto/pay-bill-no-auth.dto';
@@ -120,40 +120,43 @@ export class BillService {
         user,
         dto,
       );
-      
-      
-      let payload: BillInquiryRepoInterface = {
 
+      let payload: BillInquiryRepoInterface = {
         bill_type: dto.bill_type ? dto.bill_type : undefined,
         //mobile inquiry
-        mobile: user.mobile,
+        mobile: dto.mobile?dto.mobile : undefined ,
         operator: dto.operator ? dto.operator : undefined,
         period: dto.period ? dto.period : undefined,
 
         //phone inquiry
         phone: dto.phone ? dto.phone : undefined, //  فقط برای استعلام قبض تلفن اجباری
-       
+
         //water - gas .... inquiry
         bill_id: dto.bill_id ? dto.bill_id : undefined, //فقط برای استعلام قبض آب و برق اجباری  - شناسه قبض (موجود بر روی قبض)
-       
+
         //gaz inwuity
-        participate_code: dto.participate_code ? dto.participate_code : undefined, //کد اشتراک کنتور گاز (موجود بر روی قبض)
-       
+        participate_code: dto.participate_code
+          ? dto.participate_code
+          : undefined, //کد اشتراک کنتور گاز (موجود بر روی قبض)
+
         order_id,
       };
-      const res : CheckBillRepoResponseInterface  = await this.requestToServiceProvider(
-        PaymnetRemoteMethod.inquiry_bill,
-        payload,
-      );
-      if (res && res?.code.toString() == "1") {
+      const res: CheckBillRepoResponseInterface =
+        await this.requestToServiceProvider(
+          PaymnetRemoteMethod.inquiry_bill,
+          payload,
+        );
+      console.log(res);
+      const { code, msg, ...data } = res;
+      if (res && res?.code.toString() == '1') {
         await this.walletService.transferMoneyWallet2Wallet(
           null,
           user.Wallet.id,
           2000,
           'استعلام مبلغ قبض',
-          order.id
+          order.id,
         );
-        const { code , msg ,...data } = res;
+
         await this.updateOrder(order.id, data, '');
         return {
           status: true,
@@ -163,10 +166,10 @@ export class BillService {
           },
         };
       } else {
-       
+        await this.updateOrder(order.id, null, '', msg);
         return {
           status: false,
-          message: 'some thing went wrong',
+          message: msg ?? 'some thing went wrong',
         };
       }
     } catch (e) {
@@ -210,7 +213,7 @@ export class BillService {
         PaymnetRemoteMethod.bill,
         billPayload,
       );
-
+      const { code, msg, ...data } = res;
       if (res && type == OrderType.BILL_PAYMENT_BY_CREDIT && res.url) {
         return {
           status: true,
@@ -236,7 +239,7 @@ export class BillService {
       } else {
         return {
           status: false,
-          message: 'خطا در برقراری سرویس',
+          message: msg ?? 'خطا در برقراری سرویس',
         };
       }
     } catch (e) {
@@ -252,7 +255,7 @@ export class BillService {
     payload: any = {},
   ): Promise<any> {
     const data = JSON.stringify({
-      username: this.config.get('INAX_PASSWORD'),
+      username: this.config.get('INAX_USERNAME'),
       password: this.config.get('INAX_PASSWORD'),
       method: method,
       ...payload,
@@ -284,50 +287,53 @@ export class BillService {
     orderId: string,
     response: any,
     title: string,
+    msg: string = '',
   ): Promise<void> {
     let keyValueObj = [];
-    if (!Array.isArray(response)) {
-      for (let key in response) {
-        keyValueObj.push({
-          key: responseKeyToFaKey(key),
-          value: responseValueToFaKey(key, response[key]),
-          orderId: orderId,
-          key_en: key,
-        });
-      }
-    }
-    let res: any;
-    if (Array.isArray(response)) {
-      for (let i = 0; i < response.length; i++) {
-        res = response[i];
-        for (let key in res) {
+    if (response) {
+      if (!Array.isArray(response)) {
+        for (let key in response) {
           keyValueObj.push({
             key: responseKeyToFaKey(key),
-            value: responseValueToFaKey(key, res[key]),
+            value: responseValueToFaKey(key, response[key]),
             orderId: orderId,
             key_en: key,
           });
         }
-        keyValueObj.push({
-          key: 'separator',
-          value: 'separator',
-          orderId: orderId,
-        });
       }
+      let res: any;
+      if (Array.isArray(response)) {
+        for (let i = 0; i < response.length; i++) {
+          res = response[i];
+          for (let key in res) {
+            keyValueObj.push({
+              key: responseKeyToFaKey(key),
+              value: responseValueToFaKey(key, res[key]),
+              orderId: orderId,
+              key_en: key,
+            });
+          }
+          keyValueObj.push({
+            key: 'separator',
+            value: 'separator',
+            orderId: orderId,
+          });
+        }
+      }
+      await this.prisma.keyValue.createMany({
+        data: keyValueObj,
+      });
     }
-
-    await this.prisma.keyValue.createMany({
-      data: keyValueObj,
-    });
     await this.prisma.order.update({
       where: {
         id: orderId,
       },
       data: {
-        isPaid: true,
+        isPaid: msg ? false : true,
         title: title,
         datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
         data1: JSON.stringify(response),
+        data2: msg,
       },
     });
     return;

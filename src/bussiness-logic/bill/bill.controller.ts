@@ -26,10 +26,11 @@ export class BillAuthController {
 
   @Post('inquiry-bill-amount')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
-  getUserId(
+  inquiryBillAmount(
     @User() user: any,
     @Body() dto: BillAmountInquiryDto,
   ): Promise<INewResponseAPI<BillInquiryResponseRepoInterface>> {
+    console.log(dto)
     return this.billService.inquiryBillAmount(user, dto);
   }
 

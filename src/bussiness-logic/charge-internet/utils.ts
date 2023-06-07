@@ -12,8 +12,10 @@ export const responseKeyToFaKey = (key: string): string => {
       translatedKey = 'شناسه ارجاع';
     case 'msg':
       translatedKey = 'توضیحات';
-      case 'code':
-        translatedKey = 'وضعیت';
+    case 'pay_id':
+      translatedKey = 'شناسه قبض';
+    case 'code':
+      translatedKey = 'وضعیت';
     default:
       translatedKey = key;
   }
@@ -22,12 +24,12 @@ export const responseKeyToFaKey = (key: string): string => {
 
 export const responseValueToFaKey = (
   key: string,
-  value: string | boolean |number ,
-): string | boolean |number => {
+  value: string | boolean | number,
+): string | boolean | number => {
   let translatedValue: string;
   let res = value;
-  if (key == 'status' || key == 'Status' ) {
-    if (value == true || value == 'true' || value == 'True'  || value == '1' ) {
+  if (key == 'status' || key == 'Status') {
+    if (value == true || value == 'true' || value == 'True' || value == '1') {
       res = 'فعال';
     }
     if (value == false || value == 'false' || value == 'False') {
@@ -42,10 +44,8 @@ export const responseValueToFaKey = (
   ) {
     res = addCommas(value.toString());
   }
-  if (
-    key.includes('code') 
-  ) {
-    res = (value.toString() == "1" ) ? "موفق" : "ناموفق";
+  if (key.includes('code')) {
+    res = value == 1 ? 'موفق' : 'ناموفق';
   }
   return res;
 };

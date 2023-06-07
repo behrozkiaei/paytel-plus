@@ -112,7 +112,7 @@ export class ServicesService {
     payload: any = {},
   ): Promise<any> {
     const data = JSON.stringify({
-      username: this.config.get("INAX_PASSWORD"),
+      username: this.config.get("INAX_USERNAME"),
       password: this.config.get("INAX_PASSWORD"),
       method: method,
       ...payload,

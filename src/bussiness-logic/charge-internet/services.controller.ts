@@ -16,7 +16,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { toEn } from 'src/utils/toEn';
 import { phoneNumberNormalizer } from '@persian-tools/persian-tools';
 
-@UseGuards(JwtGuard, RolesGuard)
+// @UseGuards(JwtGuard, RolesGuard)
 
 @Controller('Services')
 @ApiTags("Services Api's")
