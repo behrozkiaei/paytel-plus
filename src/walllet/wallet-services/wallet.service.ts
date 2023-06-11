@@ -501,7 +501,7 @@ export class WalletService {
         const transaction = await this.prisma.transaction.create({
           data: {
             destWalletId: wallet.id,
-            amount: +amount+1000,
+            amount: +amount,
             resnum: resnum,
             orderId:orderId,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),

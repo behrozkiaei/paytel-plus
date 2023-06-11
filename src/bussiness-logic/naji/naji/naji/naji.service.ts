@@ -294,8 +294,9 @@ export class NajiService {
   //get tnaji token
   async getNajiToken() {
     try {
+      console.log("getNajiToken")
       const configData = await this.prisma.config.findFirst({});
-
+      console.log("configData",configData)
       if (configData && configData.naji_token) {
         const end = moment().format('jYYYY/jMM/jDD HH:mm:ss');
         const duration = moment(end, 'jYYYY/jMM/jDD HH:mm:ss').diff(
@@ -358,7 +359,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -422,7 +423,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.NEGETIVE_POINT);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -479,7 +480,7 @@ export class NajiService {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.ACTIVE_PLATES);
 
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -506,7 +507,7 @@ export class NajiService {
       );
       const response: ActivePlateResponseInterface[] = result.data;
 
-      const data = qs.stringify(response);
+      const data = JSON.stringify(response);
 
       await this.updateOrder(orderId, response, 'استعلام پلاک فعال');
       const order = await this.prisma.order.findUnique({
@@ -538,7 +539,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.PASSPORT_STATUS);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -566,7 +567,7 @@ export class NajiService {
 
       const response: PassportStatusIntrerface = result.data;
 
-      const data = qs.stringify(response);
+      const data = JSON.stringify(response);
 
       await this.updateOrder(orderId, response, 'استعلام وضعیت پاسپورت');
       const order = await this.prisma.order.findUnique({
@@ -598,7 +599,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.COUNTRY_LEAVING);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -627,7 +628,7 @@ export class NajiService {
 
       const response: CountryLeavingReponseInterface = result.data;
 
-      const data = qs.stringify(response);
+      const data = JSON.stringify(response);
 
       await this.updateOrder(orderId, response, 'استعلام وضعیت خروج از کشور');
       const order = await this.prisma.order.findUnique({
@@ -657,22 +658,37 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
+      console.log(21)
       const configData = await this.getNajiToken();
+      // console.log(configData)
       const price = this.getServicePrice(NajiType.VIOLATION_REPORT);
-      if (price > +user.wallet.amount) {
+      console.log(price)
+      console.log(31)
+      const User = await this.prisma.user.findUnique({
+        where :{
+          id: user.id
+        },
+        include :{
+          Wallet:true
+        }
+      })
+      if (price > +User.Wallet.amount) {
+        console.log(32)
         return { status: false, message: 'amonut is not enough' };
       }
+      console.log(22)
       const plateRes = await this.getPlateById(plateId);
+      console.log("plateRes",plateRes)
       if (!plateRes || !plateRes.status) {
         throw new Error('Plate not exist');
       }
-
+      console.log(23)
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/${
           plateRes.result.naji.najiId
-        }/vehicles/${plateRes.result.license}/violations`,
+        }/vehicles/${plateRes.result.license}/violations/report`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
         },
@@ -692,7 +708,7 @@ export class NajiService {
 
       const response: ViolationTypeResponseInterface = result.data;
 
-      const data = qs.stringify(response);
+      const data = JSON.stringify(response);
 
       await this.updateOrder(orderId, response, 'استعلام تخلفات رانندگی');
       const order = await this.prisma.order.findUnique({
@@ -710,8 +726,10 @@ export class NajiService {
         },
       };
     } catch (error) {
+      console.log(error)
       return {
         status: false,
+        message : error,
       };
     }
   }
@@ -726,7 +744,7 @@ export class NajiService {
       const configData = await this.getNajiToken();
       const plate = await this.getPlateById(plateId);
       const price = this.getServicePrice(NajiType.VIOLATION_IMAGE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       if (!plate || !plate.status) {
@@ -758,7 +776,7 @@ export class NajiService {
 
       const response: violationImageReponseInterface = result.data;
 
-      const data = qs.stringify(response);
+      const data = JSON.stringify(response);
 
       await this.updateOrder(orderId, response, 'استعلام تصویر تخلف');
       const order = await this.prisma.order.findUnique({
@@ -790,7 +808,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.VIOLATION_AGGREGATE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const plate = await this.getPlateById(plateId);
@@ -874,7 +892,7 @@ export class NajiService {
       }
       const response: ViolationAggregateReportInterface = result.data;
 
-      const data = qs.stringify(response);
+      const data = JSON.stringify(response);
       await this.updateOrder(orderId, response, 'استعلام تخلفات تجمیعی');
       const order = await this.prisma.order.findUnique({
         where: { id: orderId },
@@ -905,7 +923,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const plate = await this.getPlateById(plateId);
@@ -969,11 +987,12 @@ export class NajiService {
   ) {
     try {
       let license;
-      if (dto.type == PlateType.CAR) {
+      if (dto.type == "CAR") {
         const charDigit = plateChartoDigit(dto.charPart);
         license = `${dto.countryPart}${charDigit}${dto.firstPart}${dto.secondPart}`;
       }
-      if (dto.type == PlateType.MOTOR) {
+      console.log("license",license)
+      if (dto.type == "MOTOR") {
         license = `08${dto.firstPart}${dto.secondPart}000`;
       }
       const plate = await this.prisma.plate.create({
@@ -1144,7 +1163,7 @@ export class NajiService {
   }
 
   getServicePrice(type: NajiType): number {
-    return 51000;
+    return 10000;
   }
 
   async makeorder(dto: any, type: OrderType, user) {
@@ -1165,18 +1184,22 @@ export class NajiService {
       userId,
       price,
       orderId,
-      `${this.config.get('FRONT_SERVER')}/naji-callback/callback`,
+      `${this.config.get('SERVER_ADDRESS')}/naji-callback/callback`,
     );
     return res;
   }
   async handleCallback(query) {
+    console.log("callbak controller service naji")
    const callbackers =  await this.transactionService.handleCallback(query);
+   console.log("call back transaction service handled")
+   console.log(callbackers)
     if(!callbackers.status ){
       return {
         status : false,
         message : "transaction verify failed"
       }
     }
+    console.log(15)
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         securePan: query.Authority,
@@ -1186,23 +1209,29 @@ export class NajiService {
         order: true,
       },
     });
+    console.log(16)
     const dto = JSON.parse(transaction.order.payload);
     const user = await this.prisma.user.findUnique({
       where: {
         id: transaction.order.userId,
       },
+      include:{
+        Wallet:true
+      }
     });
     let res: INewResponseAPI<najiResponseId>;
-    switch (transaction.order.type) {
-      case OrderType.ACTIVE_PLATES_BY_CREDIT:
+    console.log(transaction.order.type)
+     switch (transaction.order.type) {
+      case "ACTIVE_PLATES_BY_CREDIT":
         res = await this.activePlate(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
+        return res;
         break;
-      case OrderType.DOCUMENT_STATUS_BY_CREDIT:
-        res = await this.documentStatus(
+      case "DOCUMENT_STATUS_BY_CREDIT":
+        await this.documentStatus(
           user,
           dto.plateId,
           transaction.order.id,
@@ -1210,21 +1239,23 @@ export class NajiService {
         return res;
 
         break;
-      case OrderType.NEGETIVE_POINT_BY_CREDIT:
+      case "NEGETIVE_POINT_BY_CREDIT":
         res = await this.negetivePoint(
           user,
           dto as unknown as NegeticvePoint,
           transaction.order.id,
         );
+        return res;
         break;
-      case OrderType.VIOLATION_AGGREGATE_BY_CREDIT:
+      case "VIOLATION_AGGREGATE_BY_CREDIT":
         res = await this.getViolationReport(
           user,
           dto.plateId,
           transaction.order.id,
         );
+        return res;
         break;
-      case OrderType.VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT:
+      case "VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT":
         const { plateId, ...payload } = dto;
         res = await this.getAggregateViolationReportWhitoutRegisteration(
           user,
@@ -1232,58 +1263,57 @@ export class NajiService {
           payload as unknown as AggregateViolationReportWhitoutRegisterationDto,
           transaction.order.id,
         );
-
+        return res;
         break;
-      case OrderType.COUNTRY_LEAVING_BY_CREDIT:
+      case "COUNTRY_LEAVING_BY_CREDIT":
         res = await this.getCountryLeavingStatus(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
+        return res;
         break;
-      case OrderType.DRIVING_LICENSE_BY_CREDIT:
+      case "DRIVING_LICENSE_BY_CREDIT":
         res = await this.driverLicense(
           user,
           dto as unknown as DriverNajiDto,
           transaction.order.id,
         );
+        return res;
         break;
-      case OrderType.PASSPORT_STATUS_BY_CREDIT:
+      case "PASSPORT_STATUS_BY_CREDIT":
         res = await this.getPassportStatus(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
+        return res;
         break;
-      case OrderType.VIOLATION_IMAGE_BY_CREDIT:
+      case "VIOLATION_IMAGE_BY_CREDIT":
         res = await this.violationImage(
           user,
           dto.plateId,
           dto.violationId,
           transaction.order.id,
         );
-
+        return res;
         break;
-      case OrderType.VIOLATION_REPORT_BY_CREDIT:
+      case "VIOLATION_REPORT_BY_CREDIT":
+        console.log(20)
         res = await this.getViolationReport(
           user,
           dto.plateId,
           transaction.order.id,
         );
+        return res;
         break;
       default:
+        return{
+          status:false
+        }
         break;
     }
-    const token = await this.authService.sign5MinToken(user.id);
-    return {
-      url: `${this.config.get('FRONT_SERVER')}/id=${
-        res.result.order.id
-      }&token=${token}`,
-      RedirectURL: `${this.config.get('FRONT_SERVER')}/id=${
-        res.result.order.id
-      }&token=${token}`,
-      statusCode: 302,
-    };
+    
   }
   async registerNajiAndPlate(
     user:any,

@@ -295,7 +295,7 @@ export class TransactionsService {
     } else if (query.Status == 'OK') {
       try {
         console.log(1);
-        console.log(query.Authority);
+        console.log("query.Authority",query.Authority);
         const transaction = await this.prisma.transaction.findFirst({
           where: {
             securePan: query.Authority,
@@ -312,12 +312,12 @@ export class TransactionsService {
         if (!transaction)
           return {
             status: false,
-            message: 'چنین تراکنش وجود ندارد',
+            message: 'no transaction exist',
           };
 
         console.log(transaction);
         if (transaction.isPaid == true) {
-          return { result: {}, status: false, message: 'تراکنش منقضی شده است' };
+          return { result: {}, status: false, message: 'transaction expired!' };
         }
         let debt = 0 ; 
         if(+transaction.wallet.amount < 0 ){
@@ -329,7 +329,7 @@ export class TransactionsService {
         }
         const data = JSON.stringify({
           merchant_id: 'da506228-c225-431c-91ff-ddc4abe8b995',
-          amount: (+transaction.amount) + (debt) + commission ,
+          amount: (+transaction.amount) ,
           authority: transaction.securePan,
         });
 
@@ -369,10 +369,11 @@ export class TransactionsService {
           const res = await this.transferBaseOnOrderAndTransaction(
             transaction.order.id,
           );
+          console.log("transferBaseOnOrderAndTransaction",res)
            await this.prisma.keyValue.createMany({
             data :[
               {key :"پرداخت" , value : "کارت بانکی" ,orderId:transaction.order.id },
-              {key :"شناسه تراکنش" , value : response.data.data.ref_id ,orderId:transaction.order.id },
+              {key :"شناسه تراکنش" , value : response.data.data.ref_id.toString() ,orderId:transaction.order.id },
             ]
           })
           if (!res.status) {
@@ -393,7 +394,7 @@ export class TransactionsService {
             await this.walletService.doingTransferWhenAmountIsEnough(
               transaction.order.id,
             );
-          }
+          } 
 
           if (transaction.order?.type == OrderType.internetByCredit) {
             return await this.buyInternetAndWalletTransfer(
@@ -410,6 +411,7 @@ export class TransactionsService {
               desc: true,
             },
           });
+          console.log("end order" , order)
           return {
             status: true,
             message: 'تراکنش موفق',
@@ -425,7 +427,7 @@ export class TransactionsService {
         }
       } catch (e) {
         console.log(e);
-        return { status: false, message: 'تراکنش ناموفق بود' };
+        return { status: false, message: 'unsuccessfull' };
       }
     }
   }
@@ -721,12 +723,14 @@ export class TransactionsService {
       }
       
       const transfer = await this.walletService.transferMoneyWallet2Wallet(
-        masterWallet.id,
+        null,
         order.user.Wallet.id,
         order.amount ,
         'تراکنش بانکی',
       );
+      console.log("trasnferrr",transfer)
       if (!transfer.status) {
+        console.log("transfer.status",transfer.status)
         throw new Error('err');
       }
       return {

@@ -23,6 +23,9 @@ export class palteIdDto {
   @IsNotEmpty()
   @ApiProperty()
   fromWallet: boolean;
+
+
+  
 }
 
 export class palteIdAndViolationDto {

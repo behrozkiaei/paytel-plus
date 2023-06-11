@@ -4,14 +4,16 @@ import { NajiService } from './naji.service';
 
 @ApiTags("Naji callback services Api's")
 @Controller('naji-callback')
-export class NajiAuthController {
+export class NajiCallbackController {
   constructor(
     private najiService: NajiService,
   ) {}
 
   @Get('callback')
-  @Redirect()
-  callback(@Query() query: any) {
-    return this.najiService.handleCallback(query);
+  // @Redirect()
+  async callback(@Query() query: any) {
+    console.log("calback controller")
+    const res = await this.najiService.handleCallback(query);
+    return res;
   }
 }

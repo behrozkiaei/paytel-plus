@@ -10,10 +10,11 @@ import { ServicesService } from '../../../bussiness-logic/charge-internet/servic
 import { JwtService } from '@nestjs/jwt';
 import { SmsService } from '../../../utils/sms_handler';
 import { NajiAuthController } from './naji/naji-auth.controller';
+import { NajiCallbackController } from './naji/callback.controller';
 
 @Module({
   imports :[],
-  controllers: [NajiController,NajiAuthController],
+  controllers: [NajiController,NajiAuthController,NajiCallbackController],
   providers: [
     NajiService,
     TransactionsService,

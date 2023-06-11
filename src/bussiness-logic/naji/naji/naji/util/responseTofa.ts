@@ -259,6 +259,7 @@ export const licensStatus = (statusCode) =>{
   }
 }
 export const plateChartoDigit = (char)  => {
+  console.log(char)
   switch (char) {
     case 'ب':
       return '02';
