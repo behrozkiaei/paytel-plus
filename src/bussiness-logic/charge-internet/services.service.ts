@@ -116,7 +116,9 @@ export class ServicesService {
       password: this.config.get("INAX_PASSWORD"),
       method: method,
       ...payload,
+      
     });
+    console.log(data)
     console.log(payload);
     const config = {
       method: 'post',
@@ -168,7 +170,7 @@ export class ServicesService {
       const res = await this.requestToServiceProvider('internet', {
         ...payload,
       });
-
+      console.log(res)
       if (res.code.toString() === '1' ) {
         this.updateOrder(order.id, res, 'خرید بسته اینترنت');
         return {

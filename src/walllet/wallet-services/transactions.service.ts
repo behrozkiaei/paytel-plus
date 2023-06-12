@@ -446,7 +446,7 @@ export class TransactionsService {
       });
       const payload: InternetProducts = {
         ...dto,
-        amount: product.amount,
+        amount: ((+product.amount)*10).toString(),
         internet_type: product.internet_type,
         name: product.name,
       };
@@ -458,7 +458,7 @@ export class TransactionsService {
       if (type == OrderType.internetByCredit) {
         const transaction = await this.walletService.createTransaction(
           user.id,
-          product.amount ,
+          +product.amount*10 ,
           order.id,
         );
         return { ...transaction };
