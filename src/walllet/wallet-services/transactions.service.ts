@@ -3,7 +3,7 @@ import { INewResponseAPI } from 'src/utils/interfaces/response-type';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { OrderType } from 'src/utils/enums';
+import { OrderType, OrderTypeToEnum } from 'src/utils/enums';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from './wallet.service';
 import {
@@ -379,14 +379,15 @@ export class TransactionsService {
           if (!res.status) {
             throw Error('increase error');
           }
-          if (transaction.order?.type == OrderType.increaseWallet) {
+          const  type =OrderTypeToEnum(transaction.order?.type )
+          if (type == OrderType.increaseWallet) {
             await this.increaseAmountOrderUpdate(
               transaction.order.id,
               response,
             );
           }
 
-          if (transaction.order?.type == OrderType.creditToOtherWallet) {
+          if (type == OrderType.creditToOtherWallet) {
             await this.updateTransactionDataInOrder(
               transaction.order.id,
               response,
@@ -396,12 +397,13 @@ export class TransactionsService {
             );
           } 
 
-          if (transaction.order?.type == OrderType.internetByCredit) {
+          if (type == OrderType.internetByCredit) {
             return await this.buyInternetAndWalletTransfer(
               transaction.order.id,
             );
           }
-          if (transaction.order?.type == OrderType.chargeByCredit) {
+
+          if (type == OrderType.chargeByCredit) {
             return await this.buyChargeAndWalletTransfer(transaction.order.id);
           }
 
@@ -472,12 +474,14 @@ export class TransactionsService {
 
   async buyCharge(user: any, dto: chargeDto): Promise<INewResponseAPI<any>> {
     try {
-      const type = dto.fromWallet
+      console.log(dto.fromWallet)
+      const type = dto.fromWallet == true
         ? OrderType.chargeByWallet
         : OrderType.chargeByCredit;
       const order = await this.OrderMakerService.makeOrder(type, user, dto);
 
       if (type == OrderType.chargeByCredit) {
+        console.log(dto.amount)
         const transaction = await this.walletService.createTransaction(
           user.id,
           dto.amount,
@@ -521,8 +525,8 @@ export class TransactionsService {
         throw Error('متاسفانه انتقال اعتبار ناموفق بود');
       }
       const buyCharge = await this.services.buyCharge(order.id);
-      console.log(1);
       if (!buyCharge.status) {
+        console.log("transferMoneyWallet2Wallet");
         await this.walletService.transferMoneyWallet2Wallet(
           master.id,
           userInfo.Wallet.id,

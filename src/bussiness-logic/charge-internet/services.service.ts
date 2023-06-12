@@ -197,6 +197,7 @@ export class ServicesService {
 
     // first save order and payload  base on wallet or credit
     const dto: ChargePayloadForDb = JSON.parse(order.payload);
+    console.log("dto from ChargePayloadForDb",dto)
     const payload = {
       operator: dto.operator,
       amount: (+dto.amount / 10).toString(),

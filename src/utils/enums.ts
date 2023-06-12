@@ -50,6 +50,13 @@ export enum OrderType {
   BILL_PAYMENT_BY_CREDIT = "BILL_PAYMENT_BY_CREDIT",
   BILL_PAYMENT_BY_WALLET = "BILL_PAYMENT_BY_WALLET",
 }
+export  const OrderTypeToEnum = (str: string) :  OrderType  => {
+  if (str in OrderType) {
+    return OrderType[str as keyof typeof OrderType];
+  }
+  return OrderType.increaseWallet;
+}
+
 export enum CashbackState {
   PENDING = 'PENDING', // is pernding to cash back
   DONE = 'DONE', // cash back is done

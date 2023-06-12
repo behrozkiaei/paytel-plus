@@ -45,9 +45,9 @@ export class OrderMakerService {
           data: {
             title: 'خرید شارژ',
             amount: +payload.amount ?? 0,
-            type: payload.fromWallet
-              ? OrderType.internetByWallet
-              : OrderType.internetByCredit,
+            type: payload.fromWallet == true
+              ? OrderType.chargeByWallet
+              : OrderType.chargeByCredit,
             userId: user.id,
             isPaid: false,
             commission : 1000,

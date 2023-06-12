@@ -294,9 +294,8 @@ export class NajiService {
   //get tnaji token
   async getNajiToken() {
     try {
-      console.log("getNajiToken")
       const configData = await this.prisma.config.findFirst({});
-      console.log("configData",configData)
+
       if (configData && configData.naji_token) {
         const end = moment().format('jYYYY/jMM/jDD HH:mm:ss');
         const duration = moment(end, 'jYYYY/jMM/jDD HH:mm:ss').diff(
@@ -359,7 +358,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -423,7 +422,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.NEGETIVE_POINT);
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -480,7 +479,7 @@ export class NajiService {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.ACTIVE_PLATES);
 
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -539,7 +538,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.PASSPORT_STATUS);
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -599,7 +598,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.COUNTRY_LEAVING);
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -658,37 +657,22 @@ export class NajiService {
     orderId,
   ): Promise<INewResponseAPI<najiResponseId>> {
     try {
-      console.log(21)
       const configData = await this.getNajiToken();
-      // console.log(configData)
       const price = this.getServicePrice(NajiType.VIOLATION_REPORT);
-      console.log(price)
-      console.log(31)
-      const User = await this.prisma.user.findUnique({
-        where :{
-          id: user.id
-        },
-        include :{
-          Wallet:true
-        }
-      })
-      if (price > +User.Wallet.amount) {
-        console.log(32)
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
-      console.log(22)
       const plateRes = await this.getPlateById(plateId);
-      console.log("plateRes",plateRes)
       if (!plateRes || !plateRes.status) {
         throw new Error('Plate not exist');
       }
-      console.log(23)
+
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/${
           plateRes.result.naji.najiId
-        }/vehicles/${plateRes.result.license}/violations/report`,
+        }/vehicles/${plateRes.result.license}/violations`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
         },
@@ -726,10 +710,8 @@ export class NajiService {
         },
       };
     } catch (error) {
-      console.log(error)
       return {
         status: false,
-        message : error,
       };
     }
   }
@@ -744,7 +726,7 @@ export class NajiService {
       const configData = await this.getNajiToken();
       const plate = await this.getPlateById(plateId);
       const price = this.getServicePrice(NajiType.VIOLATION_IMAGE);
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       if (!plate || !plate.status) {
@@ -808,7 +790,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.VIOLATION_AGGREGATE);
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const plate = await this.getPlateById(plateId);
@@ -923,7 +905,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
-      if (price > +user.Wallet.amount) {
+      if (price > +user.wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const plate = await this.getPlateById(plateId);
@@ -991,7 +973,6 @@ export class NajiService {
         const charDigit = plateChartoDigit(dto.charPart);
         license = `${dto.countryPart}${charDigit}${dto.firstPart}${dto.secondPart}`;
       }
-      console.log("license",license)
       if (dto.type == "MOTOR") {
         license = `08${dto.firstPart}${dto.secondPart}000`;
       }
@@ -1163,7 +1144,7 @@ export class NajiService {
   }
 
   getServicePrice(type: NajiType): number {
-    return 10000;
+    return 52000;
   }
 
   async makeorder(dto: any, type: OrderType, user) {
@@ -1221,22 +1202,20 @@ export class NajiService {
     });
     let res: INewResponseAPI<najiResponseId>;
     console.log(transaction.order.type)
-     switch (transaction.order.type) {
+    switch (transaction.order.type) {
       case "ACTIVE_PLATES_BY_CREDIT":
         res = await this.activePlate(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
-        return res;
         break;
       case "DOCUMENT_STATUS_BY_CREDIT":
-        await this.documentStatus(
+        res = await this.documentStatus(
           user,
           dto.plateId,
           transaction.order.id,
         );
-        return res;
 
         break;
       case "NEGETIVE_POINT_BY_CREDIT":
@@ -1245,7 +1224,6 @@ export class NajiService {
           dto as unknown as NegeticvePoint,
           transaction.order.id,
         );
-        return res;
         break;
       case "VIOLATION_AGGREGATE_BY_CREDIT":
         res = await this.getViolationReport(
@@ -1253,7 +1231,6 @@ export class NajiService {
           dto.plateId,
           transaction.order.id,
         );
-        return res;
         break;
       case "VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT":
         const { plateId, ...payload } = dto;
@@ -1263,7 +1240,7 @@ export class NajiService {
           payload as unknown as AggregateViolationReportWhitoutRegisterationDto,
           transaction.order.id,
         );
-        return res;
+
         break;
       case "COUNTRY_LEAVING_BY_CREDIT":
         res = await this.getCountryLeavingStatus(
@@ -1271,7 +1248,6 @@ export class NajiService {
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
-        return res;
         break;
       case "DRIVING_LICENSE_BY_CREDIT":
         res = await this.driverLicense(
@@ -1279,7 +1255,6 @@ export class NajiService {
           dto as unknown as DriverNajiDto,
           transaction.order.id,
         );
-        return res;
         break;
       case "PASSPORT_STATUS_BY_CREDIT":
         res = await this.getPassportStatus(
@@ -1287,7 +1262,6 @@ export class NajiService {
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
-        return res;
         break;
       case "VIOLATION_IMAGE_BY_CREDIT":
         res = await this.violationImage(
@@ -1296,24 +1270,28 @@ export class NajiService {
           dto.violationId,
           transaction.order.id,
         );
-        return res;
+
         break;
       case "VIOLATION_REPORT_BY_CREDIT":
-        console.log(20)
+ 
         res = await this.getViolationReport(
           user,
           dto.plateId,
           transaction.order.id,
         );
-        return res;
         break;
       default:
-        return{
-          status:false
-        }
         break;
     }
-    
+    return {
+      url: `${this.config.get('FRONT_SERVER')}/receipt/id=${
+        res.result.order.id
+      }`,
+      RedirectURL: `${this.config.get('FRONT_SERVER')}/receipt/id=${
+        res.result.order.id
+      }`,
+      statusCode: 302,
+    };
   }
   async registerNajiAndPlate(
     user:any,

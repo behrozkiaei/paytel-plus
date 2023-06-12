@@ -477,6 +477,7 @@ export class WalletService {
       const data = JSON.stringify({
         merchant_id: this.config.get('MERCHANT_ID_ZARRINPAL'),
         amount: (+amount) + (+order.commission)  + debt,
+        // amount: (+amount) ,
         callback_url: callback_url ? callback_url : `${this.config.get('SERVER_ADDRESS')}/transactions/callback`,
         description: ` افزایش اعتبار برای کاربر ${wallet.User.mobile} `,
         metadata: { mobile: wallet.User.mobile },
@@ -501,7 +502,7 @@ export class WalletService {
         const transaction = await this.prisma.transaction.create({
           data: {
             destWalletId: wallet.id,
-            amount: +amount,
+            amount: (+amount) + (+order.commission)  + debt,
             resnum: resnum,
             orderId:orderId,
             date: moment().format('jYYYY/jMM/jDD HH:mm:ss'),

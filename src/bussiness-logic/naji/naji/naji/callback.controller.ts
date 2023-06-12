@@ -1,4 +1,4 @@
-import { Controller, Get, Redirect,Query } from '@nestjs/common';
+import { Controller, Get,Res, Redirect,Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { NajiService } from './naji.service';
 
@@ -10,10 +10,9 @@ export class NajiCallbackController {
   ) {}
 
   @Get('callback')
-  // @Redirect()
-  async callback(@Query() query: any) {
-    console.log("calback controller")
-    const res = await this.najiService.handleCallback(query);
-    return res;
+  @Redirect()
+  async callback(@Query() query: any,@Res() res) {
+    const data =  await this.najiService.handleCallback(query);
+    return res.redirect(data?.url);
   }
 }
