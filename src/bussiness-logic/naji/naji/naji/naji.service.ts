@@ -33,14 +33,15 @@ import {
   MobileDto,
   NegeticvePoint,
   VerifyUserNajiDto,
-  plateDto
+  plateDto,
 } from './dto/naji.dto';
 import {
   licensStatus,
   plateChartoDigit,
   responseKeyToFaKey,
-  responseValueToFaKey
+  responseValueToFaKey,
 } from './util/responseTofa';
+import { isObject } from 'class-validator';
 const moment = require('moment-jalaali');
 @Injectable()
 export class NajiService {
@@ -327,7 +328,7 @@ export class NajiService {
       const response = await axios.request(config);
 
       const result = response.data.access_token;
-      console.log(result);
+      // console.log(result);
       await this.prisma.config.update({
         where: {
           id: configData.id,
@@ -358,7 +359,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -422,7 +423,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.NEGETIVE_POINT);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -479,7 +480,7 @@ export class NajiService {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.ACTIVE_PLATES);
 
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -538,7 +539,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.PASSPORT_STATUS);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -598,7 +599,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.COUNTRY_LEAVING);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const config = {
@@ -659,7 +660,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.VIOLATION_REPORT);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const plateRes = await this.getPlateById(plateId);
@@ -672,7 +673,7 @@ export class NajiService {
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/${
           plateRes.result.naji.najiId
-        }/vehicles/${plateRes.result.license}/violations`,
+        }/vehicles/${plateRes.result.license}/violations/report`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
         },
@@ -710,6 +711,7 @@ export class NajiService {
         },
       };
     } catch (error) {
+      console.log(error);
       return {
         status: false,
       };
@@ -726,7 +728,7 @@ export class NajiService {
       const configData = await this.getNajiToken();
       const plate = await this.getPlateById(plateId);
       const price = this.getServicePrice(NajiType.VIOLATION_IMAGE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       if (!plate || !plate.status) {
@@ -790,7 +792,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.VIOLATION_AGGREGATE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const plate = await this.getPlateById(plateId);
@@ -839,6 +841,7 @@ export class NajiService {
         },
       };
     } catch (error) {
+      console.log(error)
       return {
         status: false,
       };
@@ -905,7 +908,7 @@ export class NajiService {
     try {
       const configData = await this.getNajiToken();
       const price = this.getServicePrice(NajiType.DRIVING_LICENSE);
-      if (price > +user.wallet.amount) {
+      if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
       const plate = await this.getPlateById(plateId);
@@ -918,7 +921,7 @@ export class NajiService {
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/${
           plate.result.naji.najiId
-        }/vehicles/${plate.result.license}`,
+        }/vehicles/${plate.result.license}/documents/status`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
         },
@@ -960,20 +963,17 @@ export class NajiService {
     }
   }
 
-
-
-  
   async addPlate(
     dto: plateDto | AggregateViolationReportWhitoutRegisterationDto,
     najiId: string,
   ) {
     try {
       let license;
-      if (dto.type == "CAR") {
+      if (dto.type == 'CAR') {
         const charDigit = plateChartoDigit(dto.charPart);
         license = `${dto.countryPart}${charDigit}${dto.firstPart}${dto.secondPart}`;
       }
-      if (dto.type == "MOTOR") {
+      if (dto.type == 'MOTOR') {
         license = `08${dto.firstPart}${dto.secondPart}000`;
       }
       const plate = await this.prisma.plate.create({
@@ -1144,7 +1144,7 @@ export class NajiService {
   }
 
   getServicePrice(type: NajiType): number {
-    return 52000;
+    return 10000;
   }
 
   async makeorder(dto: any, type: OrderType, user) {
@@ -1170,17 +1170,17 @@ export class NajiService {
     return res;
   }
   async handleCallback(query) {
-    console.log("callbak controller service naji")
-   const callbackers =  await this.transactionService.handleCallback(query);
-   console.log("call back transaction service handled")
-   console.log(callbackers)
-    if(!callbackers.status ){
+    console.log('callbak controller service naji');
+    const callbackers = await this.transactionService.handleCallback(query);
+    console.log('call back transaction service handled');
+    console.log(callbackers);
+    if (!callbackers.status) {
       return {
-        status : false,
-        message : "transaction verify failed"
-      }
+        status: false,
+        message: 'transaction verify failed',
+      };
     }
-    console.log(15)
+    console.log(15);
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         securePan: query.Authority,
@@ -1190,27 +1190,27 @@ export class NajiService {
         order: true,
       },
     });
-    console.log(16)
+    console.log(16);
     const dto = JSON.parse(transaction.order.payload);
     const user = await this.prisma.user.findUnique({
       where: {
         id: transaction.order.userId,
       },
-      include:{
-        Wallet:true
-      }
+      include: {
+        Wallet: true,
+      },
     });
     let res: INewResponseAPI<najiResponseId>;
-    console.log(transaction.order.type)
+    console.log(transaction.order.type);
     switch (transaction.order.type) {
-      case "ACTIVE_PLATES_BY_CREDIT":
+      case 'ACTIVE_PLATES_BY_CREDIT':
         res = await this.activePlate(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
         break;
-      case "DOCUMENT_STATUS_BY_CREDIT":
+      case 'DOCUMENT_STATUS_BY_CREDIT':
         res = await this.documentStatus(
           user,
           dto.plateId,
@@ -1218,21 +1218,21 @@ export class NajiService {
         );
 
         break;
-      case "NEGETIVE_POINT_BY_CREDIT":
+      case 'NEGETIVE_POINT_BY_CREDIT':
         res = await this.negetivePoint(
           user,
           dto as unknown as NegeticvePoint,
           transaction.order.id,
         );
         break;
-      case "VIOLATION_AGGREGATE_BY_CREDIT":
-        res = await this.getViolationReport(
+      case 'VIOLATION_AGGREGATE_BY_CREDIT':
+        res = await this.getAggregateViolationReport(
           user,
           dto.plateId,
           transaction.order.id,
         );
         break;
-      case "VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT":
+      case 'VIOLATION_AGGREGATE_NO_AUTH_BY_CREDIT':
         const { plateId, ...payload } = dto;
         res = await this.getAggregateViolationReportWhitoutRegisteration(
           user,
@@ -1242,28 +1242,28 @@ export class NajiService {
         );
 
         break;
-      case "COUNTRY_LEAVING_BY_CREDIT":
+      case 'COUNTRY_LEAVING_BY_CREDIT':
         res = await this.getCountryLeavingStatus(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
         break;
-      case "DRIVING_LICENSE_BY_CREDIT":
+      case 'DRIVING_LICENSE_BY_CREDIT':
         res = await this.driverLicense(
           user,
           dto as unknown as DriverNajiDto,
           transaction.order.id,
         );
         break;
-      case "PASSPORT_STATUS_BY_CREDIT":
+      case 'PASSPORT_STATUS_BY_CREDIT':
         res = await this.getPassportStatus(
           user,
           transaction.order.id,
           dto as unknown as DriverNajiDto,
         );
         break;
-      case "VIOLATION_IMAGE_BY_CREDIT":
+      case 'VIOLATION_IMAGE_BY_CREDIT':
         res = await this.violationImage(
           user,
           dto.plateId,
@@ -1272,8 +1272,7 @@ export class NajiService {
         );
 
         break;
-      case "VIOLATION_REPORT_BY_CREDIT":
- 
+      case 'VIOLATION_REPORT_BY_CREDIT':
         res = await this.getViolationReport(
           user,
           dto.plateId,
@@ -1284,19 +1283,18 @@ export class NajiService {
         break;
     }
     return {
-      url: `${this.config.get('FRONT_SERVER')}/receipt/id=${
-        res.result.order.id
+      url: `${this.config.get('FRONT_SERVER')}/receipt/?id=${
+        transaction.order.id
       }`,
-      RedirectURL: `${this.config.get('FRONT_SERVER')}/receipt/id=${
-        res.result.order.id
+      RedirectURL: `${this.config.get('FRONT_SERVER')}/receipt/?id=${
+        transaction.order.id
       }`,
       statusCode: 302,
     };
   }
   async registerNajiAndPlate(
-    user:any,
+    user: any,
     dto: AggregateViolationReportWhitoutRegisterationDto,
-    
   ) {
     const configData = await this.getNajiToken();
     const najiUser = await this.prisma.najiUser.create({
@@ -1314,7 +1312,7 @@ export class NajiService {
     if (!resPlate || !resPlate.status) {
       throw new Error('Plate not exist');
     }
-    return { plate  : resPlate.result };
+    return { plate: resPlate.result };
   }
 
   async getMyNajiUser(user) {
@@ -1414,60 +1412,107 @@ export class NajiService {
       };
     }
   }
- 
 
-  
   async updateOrder(
     orderId: string,
-    response: any,
+    data: any,
     title: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
+    console.log('here');
     let keyValueObj = [];
-    if (!Array.isArray(response)) {
-      for (let key in response) {
-        keyValueObj.push({
-          key: responseKeyToFaKey(key),
-          value: responseValueToFaKey(key, response[key]),
-          orderId: orderId,
-          key_en: key,
-        });
-      }
+    const response = this.flattenObject(data);
+    console.log(response);
+    for (let i = 0; i < response.length; i++) {
+      keyValueObj.push({
+        key: responseKeyToFaKey(response[i].key),
+        value: responseValueToFaKey(
+          response[i].key,
+          response[i].value.toString(),
+        ),
+        orderId: orderId,
+        key_en: response[i].key,
+        value_en: response[i].value.toString(),
+      });
     }
-    let res: any;
-    if (Array.isArray(response)) {
-      for (let i = 0; i < response.length; i++) {
-        
-        res = response[i];
-        for (let key in res) {
-          keyValueObj.push({
-            key: responseKeyToFaKey(key),
-            value: responseValueToFaKey(key, res[key]),
-            orderId: orderId,
-            key_en: key,
-          });
-        }
-        keyValueObj.push({
-          key: 'separator',
-          value: 'separator',
-          orderId: orderId,
-        });
-      }
-    }
+    console.log(keyValueObj.length);
+    await Promise.all([
+      this.prisma.keyValue.createMany({
+        data: keyValueObj,
+      }),
+      this.prisma.order.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          isPaid: true,
+          title: title,
+          datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+          data1: JSON.stringify(data),
+        },
+      }),
+    ]);
+    return true;
+  }
 
-    await this.prisma.keyValue.createMany({
-      data: keyValueObj,
-    });
-    await this.prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        isPaid: true,
-        title: title,
-        datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-        data1: JSON.stringify(response),
-      },
-    });
-    return;
+  flattenObject(obj: any) {
+    const result: any[] = [];
+    if (typeof obj === 'object' && !Array.isArray(obj)) {
+      for (const key in obj) {
+        if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+          // console.log(obj[key])
+          const temp = this.flattenObject(obj[key]);
+          for (const innerKey in temp) {
+            result.push({ key: `${innerKey}`, value: temp[innerKey] });
+          }
+        } else if (Array.isArray(obj[key])) {
+          for (const element of obj[key]) {
+            result.push({ key: 'separator', value: '3-4' });
+            const temp = this.flattenObject(element);
+            for (const innerKey in temp) {
+              if (
+                typeof temp[innerKey].value === 'object' &&
+                !Array.isArray(temp[innerKey].value)
+              ) {
+                result.push({
+                  key: `${temp[innerKey].value.key}`,
+                  value: temp[innerKey].value.value,
+                });
+              } else if (Array.isArray(temp[innerKey].value)) {
+              } else {
+                result.push({
+                  key: `${temp[innerKey].key}`,
+                  value: temp[innerKey].value,
+                });
+              }
+            }
+          }
+        } else {
+          result.push({ key: key, value: obj[key] });
+        }
+      }
+    }else if (Array.isArray(obj)) {
+      for (const element of obj) {
+        const temp = this.flattenObject(element);
+        for (const innerKey in temp) {
+          if (
+            typeof temp[innerKey].value === 'object' &&
+            !Array.isArray(temp[innerKey].value)
+          ) {
+            result.push({
+              key: `${temp[innerKey].value.key}`,
+              value: temp[innerKey].value.value,
+            });
+          } else if (Array.isArray(temp[innerKey].value)) {
+          } else {
+            result.push({
+              key: `${temp[innerKey].key}`,
+              value: temp[innerKey].value,
+            });
+          }
+        }
+        result.push({ key: 'separator', value: 'separator' });
+      }
+    }
+    return result;
   }
 }

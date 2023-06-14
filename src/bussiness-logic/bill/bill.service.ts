@@ -199,15 +199,17 @@ export class BillService {
       let payload = {
         ...dto,
         amount: inquiry.result.amount,
+      
       };
       const order = await this.orderMaker.makeOrder(type, user, payload);
       const order_id = Math.floor(Math.random() * 1000000000).toString();
       let billPayload: BillPaymentRepoPayload = {
         bill_id: dto.billId.toString(),
         pay_id: dto.payId,
+        mobile :user.mobile,
         order_id: order_id, //شماره تراکنش در سایت شما (باید منحصر به فرد باشد)
         pay_type: dto.frmoWallet ? Paytype.credit : Paytype.online,
-        callback: this.config.get('FRONT_SERVER'),
+        callback: this.config.get('SERVER_ADDRESS'),
       };
       const res = await this.requestToServiceProvider(
         PaymnetRemoteMethod.bill,

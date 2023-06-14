@@ -16,6 +16,7 @@ export const responseKeyToFaKey = (key: string): string => {
       translatedKey = 'شناسه قبض';
     case 'code':
       translatedKey = 'وضعیت';
+      
     default:
       translatedKey = key;
   }

@@ -304,7 +304,6 @@ export class TransactionsService {
             wallet: true,
             order: {
               include: { desc: true },
-              
             },
             
           },
@@ -783,9 +782,14 @@ export class TransactionsService {
           id: id,
         },
         include: {
-          desc: true,
+          desc: {
+            orderBy :{
+              id :"desc"
+            }
+          },
           user: true,
         },
+       
       });
 
       if (order) {
@@ -800,6 +804,7 @@ export class TransactionsService {
         };
       }
     } catch (error) {
+      console.log(error)
       return {
         status: false,
       };

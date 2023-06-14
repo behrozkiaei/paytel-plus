@@ -147,15 +147,18 @@ export class OrderMakerService {
         return billOrderDesc;
         case OrderType.BILL_PAYMENT_BY_CREDIT:
         case OrderType.BILL_PAYMENT_BY_WALLET:
+          
           const billPay = await this.prisma.order.create({
             data: {
-              title: 'استعلام قبض',
-              amount: dto.amount,
-              type: dto.type,
+              title: 'پرداخت قبض قبض',
+              amount: +dto.amount*10,
+              type: dto.fromWallet
+              ? OrderType.BILL_PAYMENT_BY_WALLET
+              : OrderType.BILL_PAYMENT_BY_CREDIT,
               userId: user.id,
               commission : type == OrderType.BILL_PAYMENT_BY_CREDIT ? 1000 : 0,
               isPaid: false,
-              subTitle: ' استعلام قبض'  ,
+              subTitle: ' پر داخت قبض'  ,
               date: date,
               payload: JSON.stringify({ ...dto }),
               desc: {

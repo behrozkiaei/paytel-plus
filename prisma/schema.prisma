@@ -130,6 +130,7 @@ model keyValue {
   key     String
   key_en     String?
   value   String
+  value_en String?
   order  Order @relation(fields: [orderId], references: [id])
   orderId String  @db.ObjectId
 }

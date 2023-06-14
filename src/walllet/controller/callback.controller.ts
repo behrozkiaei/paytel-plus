@@ -18,12 +18,13 @@ export class CallbackController {
   }
 
   @Get("order-by-id")
-  getOrderById(@Param("id") id :string) {
+  getOrderById(@Query("id") id :string) {
+    console.log(id)
       return  this.transactionService.getOrderByIdnoAuth(id);
   }
   @Get('order-page')
   @Render('order')
-  async getOrderPage(@Param("id") id :string) {
+  async getOrderPage(@Query("id") id :string) {
     const res = await   this.transactionService.getOrderByIdnoAuth(id);
     return res.result
   }

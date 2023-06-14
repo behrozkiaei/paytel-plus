@@ -1,4 +1,4 @@
-import { addCommas } from "@persian-tools/persian-tools";
+import { addCommas } from '@persian-tools/persian-tools';
 
 export const responseKeyToFaKey = (key: string): string => {
   let translatedKey: string;
@@ -96,16 +96,28 @@ export const responseKeyToFaKey = (key: string): string => {
       translatedKey = 'وضعیت قیمت';
       break;
     case 'inquirePrice':
-      translatedKey = 'قیمت استعلام';
+      translatedKey = 'مبلغ جریمه به ریال';
       break;
     case 'paperId':
-      translatedKey = 'شناسه کاغذ';
+      translatedKey = 'شناسه قبض';
       break;
     case 'paymentId':
       translatedKey = 'شناسه پرداخت';
       break;
     case 'violationId':
       translatedKey = 'شناسه تخلف';
+      break;
+    case 'finalPrice':
+      translatedKey = 'مبلغ جریمه به ریال';
+      break;
+    case 'violationAddress':
+      translatedKey = 'مکان تخلف';
+      break;
+    case 'violationDeliveryTypeName':
+      translatedKey = 'نوع ثبت تخلف';
+      break;
+    case 'hasImage':
+      translatedKey = 'دارای عکس';
       break;
     case 'iolationOccuredDate':
       translatedKey = 'تاریخ وقوع تخلف';
@@ -122,7 +134,7 @@ export const responseKeyToFaKey = (key: string): string => {
     case 'inalPrice':
       translatedKey = 'قیمت نهایی';
       break;
-    case 'asImage':
+    case 'hasImage':
       translatedKey = 'دارای تصویر است؟';
       break;
     case 'iolationDeliveryTypeName':
@@ -149,7 +161,7 @@ export const responseKeyToFaKey = (key: string): string => {
       translatedKey = 'شکایت';
       break;
     case 'priceStatus':
-      translatedKey = 'وضعیت قیمت';
+      translatedKey = 'مبلغ جریمه به ریال';
       break;
     case 'pageCount':
       translatedKey = 'تعداد صفحات';
@@ -159,6 +171,12 @@ export const responseKeyToFaKey = (key: string): string => {
       break;
     case 'cardPrintDate':
       translatedKey = 'تاریخ چاپ کارت';
+      break;
+      case 'documentStatusTitle':
+      translatedKey = 'وضعیت';
+
+      case 'documentPrintDate':
+      translatedKey = 'تاریخ چاپ';
       break;
     case 'cardPostalBarcode':
       translatedKey = 'بارکد پستی کارت';
@@ -182,8 +200,8 @@ export const responseKeyToFaKey = (key: string): string => {
 
 export const responseValueToFaKey = (
   key: string,
-  value: string | boolean,
-): string | boolean=> {
+  value: string | boolean | number,
+): string | boolean => {
   let translatedValue: string;
   let res = value;
   if (key == 'status' || key == 'Status') {
@@ -194,13 +212,35 @@ export const responseValueToFaKey = (
       res = 'غیر فعال ';
     }
   }
-  if(key.includes('price') || key.includes("Price") || key.includes("Amount") || key.includes("amount")){
-    res = addCommas(value.toString())
+  if (key == 'hasImage') {
+    if (value == true || value == 'true') {
+      res = 'دارای عکس';
+    } else {
+      res = 'فاقد عکس';
+    }
   }
-  return res;
+  if (
+    key.includes('price') ||
+    key.includes('inquirePrice') ||
+    key.includes('finalPrice') ||
+    key.includes('Price') ||
+    key.includes('Amount') ||
+    key.includes('amount')
+  ) {
+    res = addCommas(value.toString());
+  }
+  if (key.includes('priceStatus')) {
+    if (value == 1 || value == '1') {
+      res = 'دارد';
+    } else {
+      res = 'ندارد';
+    }
+  }
+
+  return res.toString();
 };
 
-export const licensStatus = (statusCode) =>{
+export const licensStatus = (statusCode) => {
   switch (statusCode) {
     case 21:
       return 'قبول آزمون تئوری';
@@ -257,9 +297,9 @@ export const licensStatus = (statusCode) =>{
     default:
       break;
   }
-}
-export const plateChartoDigit = (char)  => {
-  console.log(char)
+};
+export const plateChartoDigit = (char) => {
+  console.log(char);
   switch (char) {
     case 'ب':
       return '02';
@@ -313,4 +353,4 @@ export const plateChartoDigit = (char)  => {
     default:
       break;
   }
-}
+};

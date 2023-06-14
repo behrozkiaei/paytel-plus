@@ -6,6 +6,8 @@ import { WalletService } from 'src/walllet/wallet-services/wallet.service';
 import { PayBill } from './dto/pay-bill-no-auth.dto';
 import { BillService } from './bill.service';
 import { redirectUrl } from 'src/utils/interfaces/bill.interfaces';
+import { Roles } from 'src/auth/decorator/role.decorator';
+import { User } from 'src/auth/decorator/user.decorator';
 
 @ApiTags("Bill no Auth auth services Api's")
 @Controller('bill-no-auth')
@@ -29,4 +31,14 @@ export class BillNoAuthController {
 
     return this.billService.billIPaymentByPayIdAndBillIdNoAuth(dto) ;
   }
+
+  @Post('bill-callback')
+  billPaymentCallback(
+    @Query() query: any,
+    
+  ){
+    console.log(query)
+    return query;
+  }
+
 }
