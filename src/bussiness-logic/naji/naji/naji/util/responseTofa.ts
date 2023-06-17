@@ -172,10 +172,10 @@ export const responseKeyToFaKey = (key: string): string => {
     case 'cardPrintDate':
       translatedKey = 'تاریخ چاپ کارت';
       break;
-      case 'documentStatusTitle':
+    case 'documentStatusTitle':
       translatedKey = 'وضعیت';
 
-      case 'documentPrintDate':
+    case 'documentPrintDate':
       translatedKey = 'تاریخ چاپ';
       break;
     case 'cardPostalBarcode':
@@ -192,6 +192,32 @@ export const responseKeyToFaKey = (key: string): string => {
       break;
     case 'ocumentStatusTitle':
       translatedKey = 'عنوان وضعیت سند';
+    case 'licensePlateNumber':
+      translatedKey = 'شماره پلاک';
+    case 'description':
+      translatedKey = 'توضیحات';
+    case 'separationDate':
+      translatedKey = 'تاریخ';
+    case 'licensePlate':
+      translatedKey = 'پلاک';
+    case 'isPersonFound':
+      translatedKey = 'شخص پیدا شده است؟';
+    case 'expiryDate':
+      translatedKey = 'تاریخ انقضا';
+    case 'issueDate':
+      translatedKey = 'تاریخ درخواست';
+    case 'passportNo':
+      translatedKey = 'شماره پاسپورت';
+    case 'postBarcode':
+      translatedKey = 'بارکد پاسپورت';
+    case 'requestDate':
+      translatedKey = 'تاریخ درخواست';
+    case 'requestStatue':
+      translatedKey = 'وضعیت';
+    case 'hasRequest':
+      translatedKey = 'درخواست داده شده؟';
+    case 'hasPassport':
+      translatedKey = 'پاسپورت داره؟';
     default:
       translatedKey = key;
   }
@@ -219,7 +245,7 @@ export const responseValueToFaKey = (
       res = 'فاقد عکس';
     }
   }
-  
+
   if (
     key.includes('price') ||
     key.includes('inquirePrice') ||
@@ -237,13 +263,19 @@ export const responseValueToFaKey = (
       res = 'ندارد';
     }
   }
-  if (key == ('isDrivingAllowed')) {
-    if (value.toString() == "true") {
+  if (
+    key == 'isDrivingAllowed' ||
+    key == 'isPersonFound' ||
+    key == 'hasRequest' ||
+    key == 'hasPassport'
+  ) {
+    if (value.toString() == 'true') {
       res = 'بله';
     } else {
       res = 'خیر';
     }
   }
+
   return res.toString();
 };
 

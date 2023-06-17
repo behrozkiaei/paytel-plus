@@ -42,6 +42,7 @@ import {
   responseValueToFaKey,
 } from './util/responseTofa';
 import { isObject } from 'class-validator';
+import { urlencoded } from 'body-parser';
 const moment = require('moment-jalaali');
 @Injectable()
 export class NajiService {
@@ -606,13 +607,15 @@ export class NajiService {
       if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
+      console.log(`${this.config.get('SHIRAD_API_URL')}naji/users/${
+        dto.najiId
+      }/country-leaving-permission`)
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${this.config.get('SHIRAD_API_URL')}naji/users/${
+        url: encodeURI(`${this.config.get('SHIRAD_API_URL')}naji/users/${
           dto.najiId
-        }/Country-Leaving-permission
-          s`,
+        }/country-leaving-permission`),
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
         },

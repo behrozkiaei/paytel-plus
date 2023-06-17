@@ -157,7 +157,7 @@ export class NajiController {
     return this.najiService.getPassportStatus(user, order.id, dto);
   }
 
-  @Post('country-leaving-status')
+  @Post('leaving-status')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   async getCountryLeavingStatus(
     @User() user: any,
