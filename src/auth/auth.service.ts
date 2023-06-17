@@ -42,10 +42,10 @@ export class AuthService {
     try {
       // const password ="1234" || (Math.floor(Math.random() * 9000) + 1000).toString();
 
-      const password =
-        dto.mobile == '09116264382' || dto.mobile == '09302803271'
-          ? '1234'
-          : (Math.floor(Math.random() * 9000) + 1000).toString();
+      // const password =
+      //   dto.mobile == '09116264382' || dto.mobile == '09302803271'? '1234'
+      //     : (Math.floor(Math.random() * 9000) + 1000).toString();
+      const password = "1234"
       let user = await this.findUserByPhone(mobile);
       if (!user) {
         user = await this.createWalletIfUserNotExist(mobile, password);
@@ -65,8 +65,8 @@ export class AuthService {
         },
       });
       // wait send message to user
-      if (!(dto.mobile == '09116264382' || dto.mobile == '09302803271'))
-        await this.smsService.sendOtp(user.mobile, password);
+      // if (!(dto.mobile == '09116264382' || dto.mobile == '09302803271'))
+        // await this.smsService.sendOtp(user.mobile, password);
       // wait send message to user
 
       return { status: true, result: true };

@@ -286,7 +286,7 @@ export class TransactionsService {
     }
   }
 
-  async handleCallback(query: any) {
+  async handleCallback(query: any):Promise<INewResponseAPI<any>> {
     console.log(query);
     if (query.Status != 'OK') {
       return {
@@ -416,14 +416,13 @@ export class TransactionsService {
           return {
             status: true,
             message: 'تراکنش موفق',
-            result: { desc: order.desc, Amount: transaction.amount },
+            result: { desc: order.desc, Amount: transaction.amount, orderId : transaction.order.id, },
           };
         } else {
           return {
             status: false,
-            result: {
-              ...transaction,
-            },
+            result: {  orderId : transaction.order.id },
+           
           };
         }
       } catch (e) {

@@ -426,12 +426,15 @@ export class NajiService {
       if (price > +user.Wallet.amount) {
         return { status: false, message: 'amonut is not enough' };
       }
+      console.log(`${this.config.get('SHIRAD_API_URL')}naji/users/${
+        dto.najiId
+      }/drivinglicenses/${dto.driverLicenseNumber}/negative-point`)
       const config = {
         method: 'get',
         maxBodyLength: Infinity,
-        url: `${this.config.get('SHIRAD_API_URL')}/naji/users/${
+        url: encodeURI(`${this.config.get('SHIRAD_API_URL')}naji/users/${
           dto.najiId
-        }/drivinglicenses/${dto.driverLicenseNumber}/negative-point`,
+        }/driving-licenses/${dto.driverLicenseNumber}/negative-point`),
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
         },
@@ -465,6 +468,7 @@ export class NajiService {
         },
       };
     } catch (error) {
+      console.log(error)
       return {
         status: false,
       };

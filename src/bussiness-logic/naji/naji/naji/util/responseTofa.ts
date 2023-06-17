@@ -219,6 +219,7 @@ export const responseValueToFaKey = (
       res = 'فاقد عکس';
     }
   }
+  
   if (
     key.includes('price') ||
     key.includes('inquirePrice') ||
@@ -236,7 +237,13 @@ export const responseValueToFaKey = (
       res = 'ندارد';
     }
   }
-
+  if (key == ('isDrivingAllowed')) {
+    if (value.toString() == "true") {
+      res = 'بله';
+    } else {
+      res = 'خیر';
+    }
+  }
   return res.toString();
 };
 
