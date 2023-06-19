@@ -1,10 +1,8 @@
-import { WalletService } from '../wallet-services/wallet.service';
 /* eslint-disable prettier/prettier */
 import { Controller } from '@nestjs/common';
-import { Body, Get, Param, Query, Render, Res } from '@nestjs/common/decorators';
+import { Get, Query, Render, Res } from '@nestjs/common/decorators';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
-import { response } from 'express';
 import { TransactionsService } from 'src/walllet/wallet-services/transactions.service';
 
 @ApiTags('transactions Callback Rout')
@@ -13,12 +11,12 @@ export class CallbackController {
   constructor(private transactionService: TransactionsService, private config: ConfigService) {}
 
   @Get('callback')
-  async callback(@Query() query: any , @Res() res  ) {
+  async callback(@Query() query: any , @Res() res:any  ) {
     const response = await this.transactionService.handleCallback(query);
     if(response.result.otderId ){
-      return res.redirect(`${this.config.get('FRONT_SERVER')}/receipt/?id=${response.result.otderId}`);
+      return res.redirect(`${this.config.get('FRONT_SERVER')}/receipt/?id=${response.result.orderId}`);
     }else{
-      res.JSON(`Transaction Not founded`)
+      return res.redirect(`${this.config.get('FRONT_SERVER')}/receipt/?id=${response.result.orderId}`);
     }
   }
 

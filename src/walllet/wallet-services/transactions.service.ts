@@ -397,13 +397,13 @@ export class TransactionsService {
           } 
 
           if (type == OrderType.internetByCredit) {
-            return await this.buyInternetAndWalletTransfer(
+             await this.buyInternetAndWalletTransfer(
               transaction.order.id,
             );
           }
 
           if (type == OrderType.chargeByCredit) {
-            return await this.buyChargeAndWalletTransfer(transaction.order.id);
+             await this.buyChargeAndWalletTransfer(transaction.order.id);
           }
 
           const order = await this.prisma.order.findUnique({
@@ -412,11 +412,12 @@ export class TransactionsService {
               desc: true,
             },
           });
+
           console.log("end order" , order)
           return {
             status: true,
             message: 'تراکنش موفق',
-            result: { desc: order.desc, Amount: transaction.amount, orderId : transaction.order.id, },
+            result: {  orderId : order.id, },
           };
         } else {
           return {
@@ -531,6 +532,17 @@ export class TransactionsService {
           dto.amount,
           'ناموفق- بازگشت پول - تراکنش خرید شارژ',
         );
+
+        await this.prisma.keyValue.createMany({
+          data :[
+          {
+            key: "status" , 
+            value : "بازگشت پول به ولت کاربر" , 
+            value_en:"status", 
+            orderId : orderId
+          },
+        ]
+        })
         throw Error(buyCharge.message ?? 'متاسفانه انتقال اعتبار ناموفق بود');
       }
       console.log(2);
@@ -594,9 +606,6 @@ export class TransactionsService {
         if (!transfer.status) {
           throw new Error('err');
         }
-        return {
-          ...buyInternet,
-        };
       }
       await this.prisma.order.update({
         where: { id: order.id },

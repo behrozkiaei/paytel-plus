@@ -181,6 +181,21 @@ export class ServicesService {
           },
         };
       } else {
+        await this.prisma.keyValue.createMany({
+          data :[{
+            key: "message" , 
+            value : res.msg.toString() , 
+            value_en:"message", 
+            orderId : orderId
+          },
+          {
+            key: "status" , 
+            value : "بازگشت پول به ولت کاربر" , 
+            value_en:"status", 
+            orderId : orderId
+          },
+        ]
+        })
         throw Error(res.msg ?? 'درخواست با خطا مواجه شد');
       }
     } catch (e) {
