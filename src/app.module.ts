@@ -245,6 +245,28 @@ const authenticate = async (email: string, password: string) => {
                   },
                 },
               },
+              {
+                resource: { model: dmmf.modelMap.NajiUser, client: prisma },
+                options: {
+                  sort: {
+                    sortBy: 'updatedAt',
+                    direction: 'desc',
+                  },
+                  actions: {
+                    edit: {
+                      before: async (request) => {
+                        // console.log(request);
+                        if (request.method === 'post') {
+                          const { id, ...payload } = request.payload;
+                          // console.log(payload);
+                          request.payload = payload;
+                        }
+                        return request;
+                      },
+                    },
+                  },
+                },
+              },
               // {
               //   resource: { model: dmmf.modelMap.config, client: prisma },
               //   options: {

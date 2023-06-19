@@ -44,11 +44,16 @@ export class BillService {
         bill_id: dto.billId,
         pay_id: dto.payId.toString(),
       };
-      const res = await this.requestToServiceProvider(
+      const resToman = await this.requestToServiceProvider(
         PaymnetRemoteMethod.check_bill,
         billCheck,
       );
-      if (res) {
+      console.log(resToman)
+      if (resToman && resToman.code ==1) {
+        const res = {
+          ...resToman,
+          amount :(+resToman.amount)*10
+        }
         return {
           status: true,
           result: res,
@@ -56,7 +61,7 @@ export class BillService {
       } else {
         return {
           status: false,
-          message: 'خطا در برقراری سرویس',
+          message: resToman.msg ?? 'خطا در برقراری سرویس',
         };
       }
     } catch (e) {
@@ -141,12 +146,15 @@ export class BillService {
 
         order_id,
       };
-      const res: CheckBillRepoResponseInterface =
+      const resToman: CheckBillRepoResponseInterface =
         await this.requestToServiceProvider(
           PaymnetRemoteMethod.inquiry_bill,
           payload,
         );
-      console.log(res);
+      const res = {
+        ...resToman , 
+        amount : (+resToman?.amount)*10 ?? 0
+      }
       const { code, msg, ...data } = res;
       if (res && res?.code.toString() == '1') {
         await this.walletService.transferMoneyWallet2Wallet(
@@ -194,13 +202,14 @@ export class BillService {
         billId: dto.billId,
       });
       if (!inquiry.status) {
-        throw new Error('somethings wrronng');
+        throw new Error(inquiry.message ?? 'somethings wrronng');
       }
       let payload = {
         ...dto,
-        amount: inquiry.result.amount,
+        amount: +inquiry.result.amount,
       
       };
+      console.log(inquiry)
       const order = await this.orderMaker.makeOrder(type, user, payload);
       const order_id = Math.floor(Math.random() * 1000000000).toString();
       let billPayload: BillPaymentRepoPayload = {
@@ -209,7 +218,7 @@ export class BillService {
         mobile :user.mobile,
         order_id: order_id, //شماره تراکنش در سایت شما (باید منحصر به فرد باشد)
         pay_type: dto.frmoWallet ? Paytype.credit : Paytype.online,
-        callback: this.config.get('SERVER_ADDRESS'),
+        callback: `${this.config.get('SERVER_ADDRESS')}/bill-no-auth/bill-callback`,
       };
       const res = await this.requestToServiceProvider(
         PaymnetRemoteMethod.bill,
@@ -246,6 +255,7 @@ export class BillService {
       }
     } catch (e) {
       return {
+
         status: false,
         message: e.message ?? '',
       };

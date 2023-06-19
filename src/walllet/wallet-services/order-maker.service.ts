@@ -147,7 +147,7 @@ export class OrderMakerService {
         return billOrderDesc;
         case OrderType.BILL_PAYMENT_BY_CREDIT:
         case OrderType.BILL_PAYMENT_BY_WALLET:
-          
+          console.log(dto)
           const billPay = await this.prisma.order.create({
             data: {
               title: 'پرداخت قبض قبض',

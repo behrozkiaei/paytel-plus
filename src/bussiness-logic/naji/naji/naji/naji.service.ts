@@ -62,11 +62,11 @@ export class NajiService {
       if (!configData.naji_token) {
         throw new Error('Naji havnt access token');
       }
-      const data = {
+      const data = JSON.stringify({
         nationalCode: dto.nationalCode,
         mobile: mobileEn,
         otp: dto.otp,
-      };
+      });
       // console.log(data)
       const config = {
         method: 'post',
@@ -74,7 +74,7 @@ export class NajiService {
         url: `${this.config.get('SHIRAD_API_URL')}naji/users`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
-          'Content-Type': 'application/json',
+          'Content-Type': undefined,
         },
         data: data,
       };
@@ -150,24 +150,25 @@ export class NajiService {
       if (!configData.naji_token) {
         throw new Error('Naji havnt access token');
       }
-      const data = {
+      const data = JSON.stringify({
         nationalCode: dto.nationalCode,
         mobile: mobileEn,
-      };
+      });
       // console.log(data)
-
+      axios.defaults.headers.post['Content-Type'] = undefined;
       const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/initial-register`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json', 
         },
         data: data,
       };
 
       const response = await axios.request(config);
+      console.log(response)
 
       if (response.status == 200) {
         return {
@@ -206,7 +207,7 @@ export class NajiService {
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/initial-register`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
-          'Content-Type': 'application/json',
+          'Content-Type': undefined,
         },
         data: data,
       };
@@ -250,7 +251,7 @@ export class NajiService {
         url: `${this.config.get('SHIRAD_API_URL')}naji/users/initial-register`,
         headers: {
           Authorization: 'Bearer ' + configData.naji_token,
-          'Content-Type': 'application/json',
+          'Content-Type': undefined,
         },
         data: data,
       };
