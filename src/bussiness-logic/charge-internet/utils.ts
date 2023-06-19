@@ -8,7 +8,7 @@ export const responseKeyToFaKey = (key: string): string => {
       break;
     case 'trans_id':
       translatedKey = 'شناسه تراکنش';
-    case 'ref_code':
+    case 'refCode':
       translatedKey = 'شناسه ارجاع';
     case 'msg':
       translatedKey = 'توضیحات';
@@ -47,6 +47,9 @@ export const responseValueToFaKey = (
   }
   if (key.includes('code')) {
     res = value == 1 ? 'موفق' : 'ناموفق';
+  }
+  if(key == "status" && value == "paid"){
+    res = "پرداخت شده"
   }
   return res;
 };

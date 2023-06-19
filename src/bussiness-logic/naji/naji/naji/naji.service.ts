@@ -43,6 +43,7 @@ import {
 } from './util/responseTofa';
 import { isObject } from 'class-validator';
 import { urlencoded } from 'body-parser';
+import { flattenObject } from 'src/utils/flatten-object.helper';
 const moment = require('moment-jalaali');
 @Injectable()
 export class NajiService {
@@ -1428,7 +1429,7 @@ export class NajiService {
   ): Promise<boolean> {
     console.log('here');
     let keyValueObj = [];
-    const response = this.flattenObject(data);
+    const response = flattenObject(data);
     console.log(response);
     for (let i = 0; i < response.length; i++) {
       keyValueObj.push({
@@ -1462,65 +1463,5 @@ export class NajiService {
     return true;
   }
 
-  flattenObject(obj: any) {
-    const result: any[] = [];
-    if (typeof obj === 'object' && !Array.isArray(obj)) {
-      for (const key in obj) {
-        if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-          // console.log(obj[key])
-          const temp = this.flattenObject(obj[key]);
-          for (const innerKey in temp) {
-            result.push({ key: `${innerKey}`, value: temp[innerKey] });
-          }
-        } else if (Array.isArray(obj[key])) {
-          for (const element of obj[key]) {
-            result.push({ key: 'separator', value: '3-4' });
-            const temp = this.flattenObject(element);
-            for (const innerKey in temp) {
-              if (
-                typeof temp[innerKey].value === 'object' &&
-                !Array.isArray(temp[innerKey].value)
-              ) {
-                result.push({
-                  key: `${temp[innerKey].value.key}`,
-                  value: temp[innerKey].value.value,
-                });
-              } else if (Array.isArray(temp[innerKey].value)) {
-              } else {
-                result.push({
-                  key: `${temp[innerKey].key}`,
-                  value: temp[innerKey].value,
-                });
-              }
-            }
-          }
-        } else {
-          result.push({ key: key, value: obj[key] });
-        }
-      }
-    }else if (Array.isArray(obj)) {
-      for (const element of obj) {
-        const temp = this.flattenObject(element);
-        for (const innerKey in temp) {
-          if (
-            typeof temp[innerKey].value === 'object' &&
-            !Array.isArray(temp[innerKey].value)
-          ) {
-            result.push({
-              key: `${temp[innerKey].value.key}`,
-              value: temp[innerKey].value.value,
-            });
-          } else if (Array.isArray(temp[innerKey].value)) {
-          } else {
-            result.push({
-              key: `${temp[innerKey].key}`,
-              value: temp[innerKey].value,
-            });
-          }
-        }
-        result.push({ key: 'separator', value: 'separator' });
-      }
-    }
-    return result;
-  }
+
 }

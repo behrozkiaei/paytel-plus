@@ -24,6 +24,7 @@ import {
 } from '../charge-internet/utils';
 import { BillAmountInquiryDto, PayBillAuthed } from './dto/bill.dto';
 import { PayBill } from './dto/pay-bill-no-auth.dto';
+import { flattenObject } from 'src/utils/flatten-object.helper';
 const moment = require('moment-jalaali');
 @Injectable()
 export class BillService {
@@ -218,7 +219,7 @@ export class BillService {
         mobile :user.mobile,
         order_id: order_id, //شماره تراکنش در سایت شما (باید منحصر به فرد باشد)
         pay_type: dto.frmoWallet ? Paytype.credit : Paytype.online,
-        callback: `${this.config.get('SERVER_ADDRESS')}/bill-no-auth/bill-callback`,
+        callback: `${this.config.get('SERVER_ADDRESS')}/bill-no-auth/bill-callback?orderId=${order.id}`,
       };
       const res = await this.requestToServiceProvider(
         PaymnetRemoteMethod.bill,
@@ -297,57 +298,51 @@ export class BillService {
   }
   async updateOrder(
     orderId: string,
-    response: any,
+    data: any,
     title: string,
-    msg: string = '',
-  ): Promise<void> {
-    let keyValueObj = [];
-    if (response) {
-      if (!Array.isArray(response)) {
-        for (let key in response) {
-          keyValueObj.push({
-            key: responseKeyToFaKey(key),
-            value: responseValueToFaKey(key, response[key]),
-            orderId: orderId,
-            key_en: key,
-          });
-        }
-      }
-      let res: any;
-      if (Array.isArray(response)) {
-        for (let i = 0; i < response.length; i++) {
-          res = response[i];
-          for (let key in res) {
-            keyValueObj.push({
-              key: responseKeyToFaKey(key),
-              value: responseValueToFaKey(key, res[key]),
-              orderId: orderId,
-              key_en: key,
-            });
-          }
-          keyValueObj.push({
-            key: 'separator',
-            value: 'separator',
-            orderId: orderId,
-          });
-        }
-      }
+    msg =null
+  ): Promise<boolean> {
+    if(msg){
       await this.prisma.keyValue.createMany({
-        data: keyValueObj,
+        data: [
+          {key: "msg" ,value: msg ,key_en:"message" , orderId: orderId}
+        ],
+      })
+      return true
+    }
+    console.log('here');
+    let keyValueObj = [];
+    const response = flattenObject(data);
+    console.log(response);
+    for (let i = 0; i < response.length; i++) {
+      keyValueObj.push({
+        key: responseKeyToFaKey(response[i].key),
+        value: responseValueToFaKey(
+          response[i].key,
+          response[i].value.toString(),
+        ),
+        orderId: orderId,
+        key_en: response[i].key,
+        value_en: response[i].value.toString(),
       });
     }
-    await this.prisma.order.update({
-      where: {
-        id: orderId,
-      },
-      data: {
-        isPaid: msg ? false : true,
-        title: title,
-        datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
-        data1: JSON.stringify(response),
-        data2: msg,
-      },
-    });
-    return;
+    console.log(keyValueObj.length);
+    await Promise.all([
+      this.prisma.keyValue.createMany({
+        data: keyValueObj,
+      }),
+      this.prisma.order.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          isPaid: true,
+          title: title,
+          datePaid: moment().format('jYYYY/jMM/jDD HH:mm:ss'),
+          data1: JSON.stringify(data),
+        },
+      }),
+    ]);
+    return true;
   }
 }
