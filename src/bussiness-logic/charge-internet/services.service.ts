@@ -183,15 +183,17 @@ export class ServicesService {
       } else {
         await this.prisma.keyValue.createMany({
           data :[{
-            key: "message" , 
+            key: "توضیحات" , 
             value : res.msg.toString() , 
+            key_en :"message" , 
             value_en:"message", 
             orderId : orderId
           },
           {
-            key: "status" , 
+            key: "وضعیت پرداخت" , 
             value : "بازگشت پول به ولت کاربر" , 
             value_en:"status", 
+            key_en:"status", 
             orderId : orderId
           },
         ]
