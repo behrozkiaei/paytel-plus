@@ -62,7 +62,16 @@ export class TransactionsController {
     return this.transactionService.getAllOrders(user, from, take);
   }
 
-  
+  @Get('/get-all-transactions')
+  @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
+  getAllTransactions(
+    @User() user: any,
+    @Query('from', new DefaultValuePipe(0)) from?: number,
+    @Query('take', new DefaultValuePipe(10)) take?: number,
+  ): any {
+    return this.transactionService.getAllTransactions(user, from, take);
+  }
+
   @Get('/order-by-id')
   @Roles(Role.ADMIN, Role.LEVEL1, Role.LEVEL2)
   getOrderById(

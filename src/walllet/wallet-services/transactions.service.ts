@@ -173,7 +173,7 @@ export class TransactionsService {
     try {
       const count = await this.prisma.order.aggregate({
         where: {
-          isPaid: true,
+          // isPaid: true,
           userId: user.id,
         },
         _count: {
@@ -182,7 +182,7 @@ export class TransactionsService {
       });
       const order = await this.prisma.order.findMany({
         where: {
-          isPaid: true,
+          // isPaid: true,
           userId: user.id,
         },
         skip: +from,
@@ -207,6 +207,62 @@ export class TransactionsService {
       return {
         result: {
           data: order,
+          length: count._count.id,
+        },
+        status: true,
+        statusCode: 0,
+      };
+    } catch (e) {
+      return {
+        result: null,
+        status: false,
+        statusCode: 0,
+      };
+    }
+  }
+
+  async getAllTransactions(user, from = 0, take = 10) {
+    try {
+      const count = await this.prisma.transaction.aggregate({
+        where: {
+          // isPaid: true,
+          order: {
+            userId: user.id,
+          },
+        },
+      
+        _count: {
+          id: true,
+        },
+      });
+      const transaction = await this.prisma.transaction.findMany({
+        where: {
+          order: {
+            userId: user.id,
+          },
+        },
+        include :{
+          order:true
+        },
+        skip: +from,
+        take: +take,
+        orderBy: [
+          {
+            createdAt: 'desc',
+          },
+        ],
+      });
+      console.log({
+        result: {
+          data: transaction,
+          length: count._count.id,
+        },
+        status: true,
+        statusCode: 0,
+      });
+      return {
+        result: {
+          data: transaction,
           length: count._count.id,
         },
         status: true,
@@ -286,7 +342,7 @@ export class TransactionsService {
     }
   }
 
-  async handleCallback(query: any):Promise<INewResponseAPI<any>> {
+  async handleCallback(query: any): Promise<INewResponseAPI<any>> {
     console.log(query);
     if (query.Status != 'OK') {
       return {
@@ -295,7 +351,7 @@ export class TransactionsService {
     } else if (query.Status == 'OK') {
       try {
         console.log(1);
-        console.log("query.Authority",query.Authority);
+        console.log('query.Authority', query.Authority);
         const transaction = await this.prisma.transaction.findFirst({
           where: {
             securePan: query.Authority,
@@ -305,7 +361,6 @@ export class TransactionsService {
             order: {
               include: { desc: true },
             },
-            
           },
         });
         if (!transaction)
@@ -318,17 +373,17 @@ export class TransactionsService {
         if (transaction.isPaid == true) {
           return { result: {}, status: false, message: 'transaction expired!' };
         }
-        let debt = 0 ; 
-        if(+transaction.wallet.amount < 0 ){
-          debt = Math.abs(+transaction.wallet.amount)
+        let debt = 0;
+        if (+transaction.wallet.amount < 0) {
+          debt = Math.abs(+transaction.wallet.amount);
         }
         let commission = 0;
-        if(transaction.order.commission > 0 ){
-          commission = +transaction.order.commission
+        if (transaction.order.commission > 0) {
+          commission = +transaction.order.commission;
         }
         const data = JSON.stringify({
           merchant_id: 'da506228-c225-431c-91ff-ddc4abe8b995',
-          amount: (+transaction.amount) ,
+          amount: +transaction.amount,
           authority: transaction.securePan,
         });
 
@@ -349,7 +404,6 @@ export class TransactionsService {
           response?.data?.data?.code == 100 ||
           response?.data?.data?.code == 101
         ) {
-
           await this.updateTransaction(transaction.id, {
             isPaid: true,
             card_pan: response.data.data.card_pan,
@@ -357,28 +411,36 @@ export class TransactionsService {
             fee_type: response.data.data.fee_type,
             fee: response.data.data.fee,
           });
-          if(debt > 0 ){
+          if (debt > 0) {
             await this.prisma.wallet.update({
-              where :{id : transaction.wallet.id},
-              data :{
-                amount : 0
-              }
-            })
+              where: { id: transaction.wallet.id },
+              data: {
+                amount: 0,
+              },
+            });
           }
           const res = await this.transferBaseOnOrderAndTransaction(
             transaction.order.id,
           );
-          console.log("transferBaseOnOrderAndTransaction",res)
-           await this.prisma.keyValue.createMany({
-            data :[
-              {key :"پرداخت" , value : "کارت بانکی" ,orderId:transaction.order.id },
-              {key :"شناسه تراکنش" , value : response.data.data.ref_id.toString() ,orderId:transaction.order.id },
-            ]
-          })
+          console.log('transferBaseOnOrderAndTransaction', res);
+          await this.prisma.keyValue.createMany({
+            data: [
+              {
+                key: 'پرداخت',
+                value: 'کارت بانکی',
+                orderId: transaction.order.id,
+              },
+              {
+                key: 'شناسه تراکنش',
+                value: response.data.data.ref_id.toString(),
+                orderId: transaction.order.id,
+              },
+            ],
+          });
           if (!res.status) {
             throw Error('increase error');
           }
-          const  type =OrderTypeToEnum(transaction.order?.type )
+          const type = OrderTypeToEnum(transaction.order?.type);
           if (type == OrderType.increaseWallet) {
             await this.increaseAmountOrderUpdate(
               transaction.order.id,
@@ -394,16 +456,14 @@ export class TransactionsService {
             await this.walletService.doingTransferWhenAmountIsEnough(
               transaction.order.id,
             );
-          } 
+          }
 
           if (type == OrderType.internetByCredit) {
-             await this.buyInternetAndWalletTransfer(
-              transaction.order.id,
-            );
+            await this.buyInternetAndWalletTransfer(transaction.order.id);
           }
 
           if (type == OrderType.chargeByCredit) {
-             await this.buyChargeAndWalletTransfer(transaction.order.id);
+            await this.buyChargeAndWalletTransfer(transaction.order.id);
           }
 
           const order = await this.prisma.order.findUnique({
@@ -413,17 +473,16 @@ export class TransactionsService {
             },
           });
 
-          console.log("end order" , order)
+          console.log('end order', order);
           return {
             status: true,
             message: 'تراکنش موفق',
-            result: {  orderId : order.id, },
+            result: { orderId: order.id },
           };
         } else {
           return {
             status: false,
-            result: {  orderId : transaction.order.id },
-           
+            result: { orderId: transaction.order.id },
           };
         }
       } catch (e) {
@@ -445,7 +504,7 @@ export class TransactionsService {
       });
       const payload: InternetProducts = {
         ...dto,
-        amount: ((+product.amount)*10).toString(),
+        amount: (+product.amount * 10).toString(),
         internet_type: product.internet_type,
         name: product.name,
       };
@@ -457,7 +516,7 @@ export class TransactionsService {
       if (type == OrderType.internetByCredit) {
         const transaction = await this.walletService.createTransaction(
           user.id,
-          +product.amount*10 ,
+          +product.amount * 10,
           order.id,
         );
         return { ...transaction };
@@ -473,14 +532,15 @@ export class TransactionsService {
 
   async buyCharge(user: any, dto: chargeDto): Promise<INewResponseAPI<any>> {
     try {
-      console.log(dto.fromWallet)
-      const type = dto.fromWallet == true
-        ? OrderType.chargeByWallet
-        : OrderType.chargeByCredit;
+      console.log(dto.fromWallet);
+      const type =
+        dto.fromWallet == true
+          ? OrderType.chargeByWallet
+          : OrderType.chargeByCredit;
       const order = await this.OrderMakerService.makeOrder(type, user, dto);
 
       if (type == OrderType.chargeByCredit) {
-        console.log(dto.amount)
+        console.log(dto.amount);
         const transaction = await this.walletService.createTransaction(
           user.id,
           dto.amount,
@@ -525,7 +585,7 @@ export class TransactionsService {
       }
       const buyCharge = await this.services.buyCharge(order.id);
       if (!buyCharge.status) {
-        console.log("transferMoneyWallet2Wallet");
+        console.log('transferMoneyWallet2Wallet');
         await this.walletService.transferMoneyWallet2Wallet(
           master.id,
           userInfo.Wallet.id,
@@ -534,15 +594,15 @@ export class TransactionsService {
         );
 
         await this.prisma.keyValue.createMany({
-          data :[
-          {
-            key: "status" , 
-            value : "بازگشت پول به ولت کاربر" , 
-            value_en:"status", 
-            orderId : orderId
-          },
-        ]
-        })
+          data: [
+            {
+              key: 'status',
+              value: 'بازگشت پول به ولت کاربر',
+              value_en: 'status',
+              orderId: orderId,
+            },
+          ],
+        });
         throw Error(buyCharge.message ?? 'متاسفانه انتقال اعتبار ناموفق بود');
       }
       console.log(2);
@@ -570,7 +630,7 @@ export class TransactionsService {
           },
         },
       });
-      return { ...buyCharge  };
+      return { ...buyCharge };
     } catch (e) {
       return {
         status: false,
@@ -618,7 +678,7 @@ export class TransactionsService {
           }),
         },
       });
-      return { ...buyInternet ,orderId : order.id};
+      return { ...buyInternet, orderId: order.id };
     } catch (e) {
       console.log(e);
       return {
@@ -732,16 +792,16 @@ export class TransactionsService {
       if (!masterWallet) {
         throw new Error('err');
       }
-      
+
       const transfer = await this.walletService.transferMoneyWallet2Wallet(
         null,
         order.user.Wallet.id,
-        order.amount ,
+        order.amount,
         'تراکنش بانکی',
       );
-      console.log("trasnferrr",transfer)
+      console.log('trasnferrr', transfer);
       if (!transfer.status) {
-        console.log("transfer.status",transfer.status)
+        console.log('transfer.status', transfer.status);
         throw new Error('err');
       }
       return {
@@ -783,7 +843,7 @@ export class TransactionsService {
     }
   }
 
-  async getOrderByIdnoAuth(id:string) {
+  async getOrderByIdnoAuth(id: string) {
     try {
       const order = await this.prisma.order.findUnique({
         where: {
@@ -791,13 +851,12 @@ export class TransactionsService {
         },
         include: {
           desc: {
-            orderBy :{
-              id :"desc"
-            }
+            orderBy: {
+              id: 'desc',
+            },
           },
           user: true,
         },
-       
       });
 
       if (order) {
@@ -812,7 +871,7 @@ export class TransactionsService {
         };
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
       return {
         status: false,
       };
